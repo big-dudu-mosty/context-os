@@ -22,11 +22,14 @@ Personal AI work
 
 ## Core Idea
 
-Each person keeps their own AI workflow, such as Codex, Claude, ChatGPT, Cursor, or local notes. After a work session, their AI compresses the useful output into a standard `.yaml` context package. Context OS then parses, indexes, and stores that package as shared team context.
+Each person keeps their own AI workflow, such as Codex, Claude, ChatGPT, Cursor, or local notes. After a work session, their AI compresses the useful output into a standard `.yaml` context package generated from a template. Context OS validates, parses, indexes, and stores that package as shared team context.
 
 Team members can later ask questions like:
 
 ```bash
+ctx template dev > dev-context.yaml
+ctx validate dev-context.yaml
+ctx submit dev-context.yaml --project ai-context-tool
 ctx ask ai-context-tool "What is the current project progress?"
 ctx ask ai-context-tool "What decisions have already been made?"
 ctx ask ai-context-tool "What is Stella's product proposal?"
@@ -38,6 +41,7 @@ ctx digest ai-context-tool --today
 The first version focuses on the smallest useful loop:
 
 - Create projects
+- Generate context package templates
 - Submit YAML context packages
 - Validate package schema
 - Store original context packages
@@ -45,7 +49,17 @@ The first version focuses on the smallest useful loop:
 - Build full-text and vector indexes
 - Query project context from the CLI
 - Generate daily project digests
-- Capture feedback and corrections
+- Capture feedback as reviewable context patches
+- Rebuild project context from source records
+
+## Design Principles
+
+- YAML is generated from templates and validated before submission, not hand-written from scratch.
+- Raw context packages and events are the source of truth.
+- Project memory is a rebuildable materialized view.
+- Feedback creates proposed patches instead of directly overwriting decisions.
+- Decisions use explicit states such as `draft`, `active`, `challenged`, `deprecated`, and `overridden`.
+- Retrieval combines structured queries, full-text search, vector search, and the current project context.
 
 ## Example Context Package
 
