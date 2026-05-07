@@ -1,0 +1,115 @@
+# 项目事实索引
+
+## 项目基本信息
+name: 企业共享上下文协作系统
+slug: inter-agent
+description: 终端优先的团队上下文共享系统，通过 YAML 上下文包实现团队协作
+confidence: high
+source: auto-scan + docs/context-sharing-architecture.md
+
+## 项目阶段
+phase: mvp_design
+status: 架构设计阶段
+confidence: high
+source: docs/context-sharing-architecture.md
+
+## 技术栈
+tech_stack:
+  - 待确定（无代码文件）
+confidence: low
+source: auto-scan
+
+## 关键目录
+key_directories:
+  - docs/: 架构文档和设计方案
+  - docs/.ccb/: CCB 协作框架目录
+confidence: high
+source: auto-scan
+
+## 核心概念
+core_concepts:
+  - ContextPackage: 用户提交的 YAML 上下文包
+  - ProjectContext: 项目当前状态的压缩快照（可重建）
+  - ContextIndex: 从 ContextPackage 提取的索引数据
+  - Digest: 每日/每周项目简报
+  - Feedback: 反馈纠偏提案（需审批）
+  - Decision: 决策记录（带状态机）
+confidence: high
+source: docs/context-sharing-architecture.md
+
+## 核心业务闭环
+workflow:
+  - 个人 AI 生成 YAML 上下文包
+  - CLI 校验并提交
+  - 后端解析、索引、更新 ProjectContext
+  - 团队通过 CLI 查询
+  - 系统生成简报
+  - 管理者提交反馈提案
+  - 审批后更新项目上下文
+confidence: high
+source: docs/context-sharing-architecture.md
+
+## 工程约束
+engineering_constraints:
+  - ContextPackage/Event 是事实源
+  - ContextIndex/Decision/Task/Risk 是提取层（可重算）
+  - ProjectContext 是可重建的物化视图
+  - Feedback 先生成提案，不直接覆盖
+  - Decision 必须有状态机和历史
+  - 检索使用混合策略（全文+向量+结构化）
+  - 所有流程必须带版本号
+  - 所有状态必须可从原始数据重建
+confidence: high
+source: docs/context-sharing-architecture.md
+
+## MVP 范围
+mvp_scope:
+  必须做:
+    - 项目创建
+    - YAML 上下文包提交
+    - YAML schema 校验
+    - 结构化入库
+    - 全文检索
+    - 向量检索
+    - 项目问答
+    - 每日简报
+    - 反馈纠偏
+  暂时不做:
+    - 复杂 Web 前端
+    - 自动监听所有 AI 对话
+    - 飞书/Slack 全量集成
+    - 复杂企业权限审批
+    - 多人共同编辑文档
+    - Excel 浏览器
+    - 完整工作流引擎
+confidence: high
+source: docs/context-sharing-architecture.md
+
+## 已识别问题
+identified_issues:
+  - YAML 格式实际可行性存疑
+  - ProjectContext 更新逻辑不明确
+  - 权限模型过于简化
+  - 向量检索应用场景不清晰
+  - 反馈纠偏机制可能导致混乱
+  - 缺少数据一致性保证
+  - LLM 调用成本和延迟未考虑
+  - CLI 认证和会话管理缺失
+confidence: high
+source: 用户反馈 + 架构审查
+
+## 待优化方向
+optimization_directions:
+  - 明确 ProjectContext 更新算法和冲突解决
+  - 补充完整权限模型
+  - 设计 YAML 生成和验证工具链
+  - 考虑 LLM 调用成本优化
+  - 补充 CLI 认证和会话管理
+  - 设计数据修复和重建机制
+confidence: high
+source: 用户反馈 + 架构审查
+
+## 元信息
+generated_at: 2026-05-08
+generated_by: claude
+scan_version: v1
