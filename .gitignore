@@ -1,0 +1,32 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Local data
+.DS_Store
+*.sqlite
+*.sqlite3
+tmp/
+data/
+
+# Editor
+.idea/
+.vscode/
