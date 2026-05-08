@@ -20,15 +20,15 @@ pool.on('error', (err) => {
   console.error('Unexpected database pool error', err);
 });
 
-export async function query<T extends QueryResultRow = QueryResultRow>(
+export async function query<T = QueryResultRow>(
   text: string,
   params: unknown[] = []
 ): Promise<T[]> {
-  const result = await pool.query<T>(text, params);
-  return result.rows;
+  const result = await pool.query<QueryResultRow>(text, params);
+  return result.rows as T[];
 }
 
-export async function queryOne<T extends QueryResultRow = QueryResultRow>(
+export async function queryOne<T = QueryResultRow>(
   text: string,
   params: unknown[] = []
 ): Promise<T | null> {

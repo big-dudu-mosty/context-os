@@ -14,6 +14,7 @@
     "db:down": "docker compose -f ../docker-compose.yml down",
     "db:setup": "npm run db:up && npm run migrate:up",
     "db:reset": "docker compose -f ../docker-compose.yml down -v && npm run db:setup",
+    "test:crud": "DATABASE_URL=postgresql://context_os:context_os_dev@localhost:5432/context_os_dev tsx src/test-crud.ts",
     "test": "jest",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\""
