@@ -1,7 +1,9 @@
 import { config } from 'dotenv';
-import { Pool, QueryResultRow } from 'pg';
+import { Pool, QueryResultRow, types } from 'pg';
 
 config();
+
+types.setTypeParser(20, (value) => Number(value));
 
 const connectionString = process.env.DATABASE_URL;
 
