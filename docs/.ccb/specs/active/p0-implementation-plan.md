@@ -54,6 +54,29 @@
 - 调用 Dream Prompt（核心 IP）
 - 生成 context_package（YAML）
 
+**项目识别逻辑**：
+```typescript
+async function identifyProjects(sessions: Session[]): Promise<string[]> {
+  const projectIds = new Set<string>();
+  
+  // 1. 优先使用用户显式标记的 project_id
+  sessions.forEach(s => {
+    if (s.project_id) {
+      projectIds.add(s.project_id);
+    }
+  });
+  
+  // 2. 如果没有显式标记，让 Dream prompt 识别
+  if (projectIds.size === 0) {
+    const identified = await dreamPromptIdentifyProjects(sessions);
+    identified.forEach(id => projectIds.add(id));
+  }
+  
+  // 3. 如果仍然无法识别，返回空数组（标记为个人 observation）
+  return Array.from(projectIds);
+}
+```
+
 #### 2.3 Dream Prompt 设计
 **输入**：
 - 今天所有 session transcripts
@@ -161,6 +184,25 @@ CREATE TABLE handoff_records (
   status VARCHAR(20) NOT NULL DEFAULT 'pending',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+```
+
+#### 3.4 权限范围
+```typescript
+// Handoff 的权限边界
+interface HandoffAccess {
+  // ✅ B 可以访问
+  handoffMessage: true,
+  contextSummary: true,
+  relatedDecisions: true,  // 从 session 提取的 decisions
+  relatedTasks: true,
+  
+  // ⚠️ B 需要额外权限才能访问
+  fullTranscript: 'requires_project_membership',  // 如果 session 关联项目，且 B 是成员
+  
+  // ❌ B 不能访问
+  otherSessions: false,
+  privateObservations: false
+}
 ```
 
 **工作量**：1 周
@@ -326,6 +368,28 @@ async function generateBriefing(userId: string): Promise<string> {
 - 异步 + 流式显示
 - 缓存 1 小时（避免重复生成）
 
+#### 6.4 数据范围策略
+```typescript
+async function generateBriefing(userId: string): Promise<string> {
+  // 1. 计算上次启动时间
+  const lastActive = await getLastActiveTime(userId);
+  const daysSinceLastActive = Math.floor(
+    (Date.now() - lastActive.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  
+  // 2. 限制最多显示 7 天
+  const daysToShow = Math.min(daysSinceLastActive, 7);
+  
+  // 3. 如果超过 7 天，显示摘要而非详细内容
+  if (daysSinceLastActive > 7) {
+    return generateSummaryBriefing(userId, daysSinceLastActive);
+  }
+  
+  // 4. 正常生成 briefing
+  return generateDetailedBriefing(userId, daysToShow);
+}
+```
+
 **工作量**：1 周
 
 **验收标准**：
@@ -349,12 +413,13 @@ CREATE TABLE users (
   name VARCHAR(100) NOT NULL,
   email VARCHAR(200) UNIQUE NOT NULL,
   role VARCHAR(50) NOT NULL DEFAULT 'member',
+  deleted_at TIMESTAMPTZ,  -- 软删除
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE agents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  owner_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,  -- 不允许删除有数据的用户
   name VARCHAR(100) NOT NULL,
   type VARCHAR(50) NOT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'active',
@@ -374,6 +439,8 @@ CREATE TABLE sessions (
   transcript_path VARCHAR(500),
   transcript_hash VARCHAR(64),
   dream_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  dream_attempts INT NOT NULL DEFAULT 0,  -- 重试次数
+  dream_max_attempts INT NOT NULL DEFAULT 3,  -- 最大重试次数
   dreamed_at TIMESTAMPTZ,
   
   INDEX idx_sessions_agent (agent_id, started_at DESC),
@@ -440,7 +507,6 @@ CREATE TABLE domain_events (
 CREATE TABLE context_packages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   source_type VARCHAR(20) NOT NULL,
-  source_sessions UUID[] NOT NULL,
   owner_id UUID NOT NULL REFERENCES users(id),
   agent_id UUID NOT NULL REFERENCES agents(id),
   title VARCHAR(500) NOT NULL,
@@ -455,6 +521,7 @@ CREATE TABLE context_packages (
   INDEX idx_context_packages_projects (project_ids) USING GIN
 );
 
+-- 使用关联表而非数组来维护 session-package 关系
 CREATE TABLE session_packages (
   session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   package_id UUID NOT NULL REFERENCES context_packages(id) ON DELETE CASCADE,
@@ -684,6 +751,62 @@ CREATE INDEX idx_embedding_vector ON embedding_results
   3. 调用 OpenAI API
   4. 保存到 embedding_results
   5. 更新 job 状态
+
+**并发控制与超时**：
+```typescript
+async function dreamConsolidationJob() {
+  const MAX_CONCURRENT = 10;  // 最多同时处理 10 个 agents
+  const TIMEOUT_PER_AGENT = 5 * 60 * 1000;  // 每个 agent 最多 5 分钟
+  
+  const sessionsByAgent = await getPendingSessionsByAgent();
+  
+  // 分批处理
+  for (let i = 0; i < sessionsByAgent.length; i += MAX_CONCURRENT) {
+    const batch = sessionsByAgent.slice(i, i + MAX_CONCURRENT);
+    
+    await Promise.all(
+      batch.map(([agentId, sessions]) => 
+        Promise.race([
+          dreamForAgent(agentId, sessions),
+          timeout(TIMEOUT_PER_AGENT)
+        ]).catch(error => {
+          console.error(`Dream failed for agent ${agentId}:`, error);
+          markSessionsAsFailed(sessions, error);
+        })
+      )
+    );
+  }
+}
+
+// Dream 失败处理
+async function markSessionsAsFailed(sessions: Session[], error: Error) {
+  for (const session of sessions) {
+    const attempts = session.dream_attempts + 1;
+    
+    if (attempts >= session.dream_max_attempts) {
+      // 达到最大重试次数，标记为 failed_permanent
+      await db.query(`
+        UPDATE sessions
+        SET 
+          dream_status = 'failed_permanent',
+          dream_attempts = $1,
+          error_message = $2
+        WHERE id = $3
+      `, [attempts, error.message, session.id]);
+    } else {
+      // 标记为 failed，下次 cron 会重试
+      await db.query(`
+        UPDATE sessions
+        SET 
+          dream_status = 'failed',
+          dream_attempts = $1,
+          error_message = $2
+        WHERE id = $3
+      `, [attempts, error.message, session.id]);
+    }
+  }
+}
+```
 
 ### Hooks
 
