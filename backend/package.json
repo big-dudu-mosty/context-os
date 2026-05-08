@@ -1,0 +1,43 @@
+{
+  "name": "context-os-backend",
+  "version": "0.1.0",
+  "description": "Context OS Backend - P0 Implementation",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "migrate:up": "node-pg-migrate --config-file .migrate.json up",
+    "migrate:down": "node-pg-migrate --config-file .migrate.json down",
+    "migrate:create": "node-pg-migrate --config-file .migrate.json create",
+    "db:up": "docker compose -f ../docker-compose.yml up -d",
+    "db:down": "docker compose -f ../docker-compose.yml down",
+    "db:setup": "npm run db:up && npm run migrate:up",
+    "db:reset": "docker compose -f ../docker-compose.yml down -v && npm run db:setup",
+    "test": "jest",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "pg": "^8.11.3",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "@types/pg": "^8.11.0",
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.1",
+    "node-pg-migrate": "^7.0.2",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "prettier": "^3.2.5",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.12",
+    "ts-jest": "^29.1.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
