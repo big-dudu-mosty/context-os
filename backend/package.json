@@ -18,6 +18,8 @@
     "test:dream": "DREAM_TEST_USE_MOCK=1 tsx src/test-dream.ts",
     "test:dream:live": "tsx src/test-dream.ts",
     "test:extraction": "tsx src/test-extraction.ts",
+    "test:briefing": "BRIEFING_TEST_USE_MOCK=1 tsx src/test-briefing.ts",
+    "test:briefing:live": "tsx src/test-briefing.ts",
     "test": "jest",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\""
