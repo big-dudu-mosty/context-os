@@ -4,18 +4,21 @@ import { Session } from "../models/session";
 import { buildDreamPrompt } from "../prompts/dream.prompt";
 import { ContextPackageRepository } from "../repositories/context-package.repository";
 import { SessionRepository } from "../repositories/session.repository";
+import { ExtractionResult, ExtractionService } from "./extraction.service";
 import { LLMClient, LLMService } from "./llm.service";
 
 export interface DreamResult {
   packageId: string;
   success: boolean;
   error?: string;
+  extraction?: ExtractionResult;
 }
 
 export interface DreamServiceOptions {
   llm?: LLMClient;
   sessionRepo?: SessionRepository;
   packageRepo?: ContextPackageRepository;
+  extractionService?: ExtractionService;
 }
 
 interface DreamYaml {
@@ -30,11 +33,14 @@ export class DreamService {
   private readonly llm: LLMClient;
   private readonly sessionRepo: SessionRepository;
   private readonly packageRepo: ContextPackageRepository;
+  private readonly extractionService: ExtractionService;
 
   constructor(options: DreamServiceOptions = {}) {
     this.llm = options.llm ?? new LLMService();
     this.sessionRepo = options.sessionRepo ?? new SessionRepository();
     this.packageRepo = options.packageRepo ?? new ContextPackageRepository();
+    this.extractionService =
+      options.extractionService ?? new ExtractionService();
   }
 
   async dreamForAgent(agentId: string, date: Date): Promise<DreamResult> {
@@ -73,6 +79,14 @@ export class DreamService {
         project_ids: projectIds,
       });
 
+      const extractionResult = await this.extractionService.extractFromYaml(
+        pkg.id,
+        agentSessions[0].owner_id,
+        rawYaml,
+        projectIds,
+      );
+      console.log("Extraction result:", extractionResult);
+
       for (const session of agentSessions) {
         await this.packageRepo.linkSession(pkg.id, session.id);
       }
@@ -84,7 +98,7 @@ export class DreamService {
         });
       }
 
-      return { packageId: pkg.id, success: true };
+      return { packageId: pkg.id, success: true, extraction: extractionResult };
     } catch (error) {
       await this.markFailed(agentSessions);
 

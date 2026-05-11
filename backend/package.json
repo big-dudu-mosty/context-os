@@ -17,6 +17,7 @@
     "test:crud": "DATABASE_URL=postgresql://context_os:context_os_dev@localhost:5432/context_os_dev tsx src/test-crud.ts",
     "test:dream": "DREAM_TEST_USE_MOCK=1 tsx src/test-dream.ts",
     "test:dream:live": "tsx src/test-dream.ts",
+    "test:extraction": "tsx src/test-extraction.ts",
     "test": "jest",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\""

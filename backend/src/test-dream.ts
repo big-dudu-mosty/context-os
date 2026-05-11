@@ -116,6 +116,15 @@ async function main(): Promise<void> {
     }
 
     if (packageId) {
+      await query("DELETE FROM observations WHERE package_id = $1", [
+        packageId,
+      ]);
+      await query("DELETE FROM open_questions WHERE package_id = $1", [
+        packageId,
+      ]);
+      await query("DELETE FROM risks WHERE package_id = $1", [packageId]);
+      await query("DELETE FROM tasks WHERE package_id = $1", [packageId]);
+      await query("DELETE FROM decisions WHERE package_id = $1", [packageId]);
       await query("DELETE FROM context_packages WHERE id = $1", [packageId]);
     }
 
