@@ -14,6 +14,7 @@
     "db:down": "docker compose -f ../docker-compose.yml down",
     "db:setup": "npm run db:up && npm run migrate:up",
     "db:reset": "docker compose -f ../docker-compose.yml down -v && npm run db:setup",
+    "scheduler": "tsx src/scheduler.ts",
     "test:crud": "DATABASE_URL=postgresql://context_os:context_os_dev@localhost:5432/context_os_dev tsx src/test-crud.ts",
     "test:dream": "DREAM_TEST_USE_MOCK=1 tsx src/test-dream.ts",
     "test:dream:live": "tsx src/test-dream.ts",
@@ -21,12 +22,14 @@
     "test:briefing": "BRIEFING_TEST_USE_MOCK=1 tsx src/test-briefing.ts",
     "test:briefing:live": "tsx src/test-briefing.ts",
     "test:handoff": "tsx src/test-handoff.ts",
+    "test:scheduler": "DREAM_TEST_USE_MOCK=1 tsx src/test-scheduler.ts",
     "test": "jest",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
     "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3",
     "openai": "^4.104.0",
     "pg": "^8.11.3",
     "yaml": "^2.8.4",
@@ -35,6 +38,7 @@
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.19",
+    "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.11.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
