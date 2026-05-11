@@ -2,11 +2,11 @@
   "name": "context-os-backend",
   "version": "0.1.0",
   "description": "Context OS Backend - P0 Implementation",
-  "main": "dist/index.js",
+  "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/server.js",
     "migrate:up": "node-pg-migrate --config-file .migrate.json up",
     "migrate:down": "node-pg-migrate --config-file .migrate.json down",
     "migrate:create": "node-pg-migrate --config-file .migrate.json create",
@@ -15,6 +15,8 @@
     "db:setup": "npm run db:up && npm run migrate:up",
     "db:reset": "docker compose -f ../docker-compose.yml down -v && npm run db:setup",
     "scheduler": "tsx src/scheduler.ts",
+    "server": "tsx src/server.ts",
+    "server:watch": "tsx watch src/server.ts",
     "test:crud": "DATABASE_URL=postgresql://context_os:context_os_dev@localhost:5432/context_os_dev tsx src/test-crud.ts",
     "test:dream": "DREAM_TEST_USE_MOCK=1 tsx src/test-dream.ts",
     "test:dream:live": "tsx src/test-dream.ts",
@@ -28,7 +30,9 @@
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
+    "cors": "^2.8.6",
     "dotenv": "^16.4.5",
+    "express": "^4.22.1",
     "node-cron": "^3.0.3",
     "openai": "^4.104.0",
     "pg": "^8.11.3",
@@ -36,6 +40,8 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.19",
     "@types/node-cron": "^3.0.11",
