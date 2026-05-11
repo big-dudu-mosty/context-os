@@ -83,5 +83,8 @@ router.get("/projects/:projectId/tasks", (req, res) => {
 router.get("/projects/:projectId/risks", (req, res) => {
   void queryController.getRisks(req, res);
 });
+router.get("/projects/:projectId/questions", (req, res) => {
+  void queryController.getQuestions(req, res);
+});
 
 export default router;

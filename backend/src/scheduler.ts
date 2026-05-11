@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import { SchedulerService } from "./services/scheduler.service";
 
-config();
+config({ override: true });
 
 const schedulerService = new SchedulerService();
 

@@ -193,3 +193,9 @@ Get open risks:
 ```bash
 curl "http://localhost:3000/api/projects/<project_id>/risks?status=open"
 ```
+
+Get open questions:
+
+```bash
+curl "http://localhost:3000/api/projects/<project_id>/questions?status=open"
+```

@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 import { Pool, QueryResultRow, types } from 'pg';
 
-config();
+config({ override: true });
 
 types.setTypeParser(20, (value) => Number(value));
 

@@ -1,7 +1,8 @@
 import { createHash } from "crypto";
+import { readFile } from "fs/promises";
 import YAML from "yaml";
 import { Session } from "../models/session";
-import { buildDreamPrompt } from "../prompts/dream.prompt";
+import { buildDreamPrompt, DreamPromptSession } from "../prompts/dream.prompt";
 import { ContextPackageRepository } from "../repositories/context-package.repository";
 import { SessionRepository } from "../repositories/session.repository";
 import { ExtractionResult, ExtractionService } from "./extraction.service";
@@ -56,7 +57,9 @@ export class DreamService {
         return { packageId: "", success: true };
       }
 
-      const prompt = buildDreamPrompt(agentSessions);
+      const prompt = buildDreamPrompt(
+        await this.attachTranscriptContent(agentSessions),
+      );
       const yamlOutput = await this.llm.chat([
         { role: "user", content: prompt },
       ]);
@@ -152,6 +155,35 @@ export class DreamService {
         dream_status: "failed",
         dream_attempts: session.dream_attempts + 1,
       });
+    }
+  }
+
+  private async attachTranscriptContent(
+    sessions: Session[],
+  ): Promise<DreamPromptSession[]> {
+    return Promise.all(
+      sessions.map(async (session) => ({
+        ...session,
+        transcript_content: await this.readTranscript(session),
+      })),
+    );
+  }
+
+  private async readTranscript(session: Session): Promise<string | null> {
+    if (!session.transcript_path) {
+      return null;
+    }
+
+    try {
+      const content = await readFile(session.transcript_path, "utf8");
+      return content.slice(0, 12000);
+    } catch (error) {
+      console.warn(
+        `Unable to read transcript for session ${session.id}: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      );
+      return null;
     }
   }
 }

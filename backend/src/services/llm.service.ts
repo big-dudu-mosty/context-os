@@ -2,7 +2,7 @@ import { config } from "dotenv";
 import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
-config();
+config({ override: true });
 
 export type LLMChatMessage = {
   role: "system" | "user" | "assistant";
@@ -28,6 +28,7 @@ export class LLMService implements LLMClient {
     this.timeoutMs = this.getTimeoutMs();
     this.client = new OpenAI({
       apiKey,
+      baseURL: process.env.OPENAI_BASE_URL,
       maxRetries: 0,
       timeout: this.timeoutMs,
     });

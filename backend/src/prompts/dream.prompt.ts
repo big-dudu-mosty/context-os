@@ -1,6 +1,10 @@
 import { Session } from "../models/session";
 
-export function buildDreamPrompt(sessions: Session[]): string {
+export type DreamPromptSession = Session & {
+  transcript_content?: string | null;
+};
+
+export function buildDreamPrompt(sessions: DreamPromptSession[]): string {
   const projectIds = Array.from(
     new Set(sessions.map((session) => session.project_id).filter(Boolean)),
   );
@@ -14,6 +18,9 @@ export function buildDreamPrompt(sessions: Session[]): string {
 - Ended: ${session.ended_at?.toISOString() ?? "ongoing"}
 - Project: ${session.project_id ?? "none"}
 - Transcript: ${session.transcript_path ?? "no transcript"}
+
+Transcript content:
+${formatTranscriptContent(session.transcript_content)}
 `;
     })
     .join("\n");
@@ -99,4 +106,14 @@ observations:
 # Output
 
 Produce ONLY the YAML output, no additional text.`;
+}
+
+function formatTranscriptContent(content: string | null | undefined): string {
+  if (!content || content.trim().length === 0) {
+    return "(no transcript content available)";
+  }
+
+  return `--- transcript start ---
+${content.trim()}
+--- transcript end ---`;
 }

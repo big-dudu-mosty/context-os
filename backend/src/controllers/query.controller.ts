@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { DecisionRepository } from "../repositories/decision.repository";
+import { OpenQuestionRepository } from "../repositories/open-question.repository";
 import { RiskRepository } from "../repositories/risk.repository";
 import { TaskRepository } from "../repositories/task.repository";
 import { optionalString, sendControllerError, sendSuccess } from "./http";
@@ -8,6 +9,7 @@ export class QueryController {
   private readonly decisionRepo = new DecisionRepository();
   private readonly taskRepo = new TaskRepository();
   private readonly riskRepo = new RiskRepository();
+  private readonly questionRepo = new OpenQuestionRepository();
 
   async getDecisions(req: Request, res: Response): Promise<void> {
     try {
@@ -42,6 +44,19 @@ export class QueryController {
         status,
       );
       sendSuccess(res, risks);
+    } catch (error) {
+      sendControllerError(res, error);
+    }
+  }
+
+  async getQuestions(req: Request, res: Response): Promise<void> {
+    try {
+      const status = optionalString(req.query.status) ?? "open";
+      const questions = await this.questionRepo.findByProject(
+        req.params.projectId,
+        status,
+      );
+      sendSuccess(res, questions);
     } catch (error) {
       sendControllerError(res, error);
     }

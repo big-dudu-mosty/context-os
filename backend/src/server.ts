@@ -4,7 +4,7 @@ import express from "express";
 import { closeDb } from "./db";
 import routes from "./routes";
 
-config();
+config({ override: true });
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
