@@ -37,6 +37,14 @@ app.use(
 const server = app.listen(port, () => {
   console.log(`Context OS API server running on http://localhost:${port}`);
   console.log(`Health check: http://localhost:${port}/health`);
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || apiKey === "mock" || apiKey === "test") {
+    console.log("");
+    console.log("WARNING: Running in MOCK mode");
+    console.log("   Set OPENAI_API_KEY in .env for real LLM responses");
+    console.log("");
+  }
 });
 
 function shutdown(signal: string): void {

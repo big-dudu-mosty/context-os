@@ -43,8 +43,11 @@ export class ArtifactService {
     });
   }
 
-  async updateArtifact(artifactId: string, content: string) {
-    return this.artifactRepo.update(artifactId, { content });
+  async updateArtifact(
+    artifactId: string,
+    input: { content?: string; title?: string },
+  ) {
+    return this.artifactRepo.update(artifactId, input);
   }
 
   async getArtifact(artifactId: string) {

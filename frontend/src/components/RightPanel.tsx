@@ -1,54 +1,200 @@
-import { useMemo, useState } from "react";
-import { api } from "../services/api";
-import type { ArchiveResult, Artifact } from "../services/api";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import type { ArchivedDocument, Artifact } from "../services/api";
 
-interface RightPanelProps {
-  artifact: Artifact | null;
-  userId: string;
-  folderId: string;
-  onArtifactUpdated: (artifact: Artifact) => void;
-  onArchived: (result: ArchiveResult) => void;
-  onError: (message: string) => void;
+export type RightPanelMode =
+  | "empty"
+  | "context"
+  | "artifact"
+  | "handoff"
+  | "github";
+
+export interface ArtifactSaveInput {
+  title: string;
+  content: string;
 }
 
-export function RightPanel(props: RightPanelProps) {
-  if (!props.artifact) {
+export interface ArtifactArchiveInput extends ArtifactSaveInput {
+  targetScope: "company" | "project";
+  summary?: string;
+  tags: string[];
+}
+
+interface RightPanelProps {
+  mode: RightPanelMode;
+  selectedContext: ArchivedDocument | null;
+  artifact: Artifact | null;
+  attachedContextIds: string[];
+  onClose: () => void;
+  onAttachContext: (context: ArchivedDocument) => void;
+  onSaveArtifact: (input: ArtifactSaveInput) => Promise<void>;
+  onArchiveArtifact: (input: ArtifactArchiveInput) => Promise<void>;
+}
+
+export function RightPanel({
+  mode,
+  selectedContext,
+  artifact,
+  attachedContextIds,
+  onClose,
+  onAttachContext,
+  onSaveArtifact,
+  onArchiveArtifact,
+}: RightPanelProps) {
+  if (mode === "context" && selectedContext) {
     return (
-      <aside className="flex w-96 shrink-0 flex-col border-l border-gray-200 bg-gray-50">
-        <div className="border-b border-gray-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-950">
-            Artifact Editor
-          </h2>
-          <p className="mt-1 text-xs text-gray-500">等待生成草稿</p>
-        </div>
-        <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-gray-500">
-          生成 Artifact 后，可在这里编辑、保存并归档到右侧资料库。
-        </div>
-      </aside>
+      <ContextDetail
+        context={selectedContext}
+        isAttached={attachedContextIds.includes(selectedContext.id)}
+        onAttach={() => onAttachContext(selectedContext)}
+        onClose={onClose}
+      />
+    );
+  }
+
+  if (mode === "artifact" && artifact) {
+    return (
+      <ArtifactEditor
+        artifact={artifact}
+        onSave={onSaveArtifact}
+        onArchive={onArchiveArtifact}
+        onClose={onClose}
+      />
+    );
+  }
+
+  if (mode === "handoff") {
+    return (
+      <PlaceholderPanel
+        title="Handoff Panel"
+        eyebrow="Inbox"
+        description="后续会在这里生成任务交接、邮件草稿和分发建议。"
+        onClose={onClose}
+      />
+    );
+  }
+
+  if (mode === "github") {
+    return (
+      <PlaceholderPanel
+        title="GitHub File Detail"
+        eyebrow="GitHub Sync"
+        description="连接仓库后，这里会展示文件变化、同步状态和可生成的上下文。"
+        onClose={onClose}
+      />
     );
   }
 
   return (
-    <ArtifactEditor
-      key={props.artifact.id}
-      {...props}
-      artifact={props.artifact}
-    />
+    <aside className="flex w-[420px] shrink-0 flex-col border-l border-[#ded7c9] bg-[#fffdf8]">
+      <PanelHeader title="Detail Panel" subtitle="Ready for context" />
+      <div className="flex flex-1 items-center justify-center px-8 text-center">
+        <div>
+          <div className="text-sm font-semibold text-[#20201d]">
+            选择资料查看详情
+          </div>
+          <p className="mt-2 text-sm leading-6 text-[#88847a]">
+            或从 assistant 回复下方生成 Artifact，在这里编辑并归档。
+          </p>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function ContextDetail({
+  context,
+  isAttached,
+  onAttach,
+  onClose,
+}: {
+  context: ArchivedDocument;
+  isAttached: boolean;
+  onAttach: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <aside className="flex w-[420px] shrink-0 flex-col border-l border-[#ded7c9] bg-[#fffdf8]">
+      <PanelHeader
+        title={context.title}
+        subtitle={new Date(context.created_at).toLocaleString("zh-CN")}
+        onClose={onClose}
+      />
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+        <div className="mb-5 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onAttach}
+            disabled={isAttached}
+            className="rounded-full bg-[#7c4dff] px-4 py-2 text-sm font-semibold text-white hover:bg-[#5b35d5] disabled:cursor-not-allowed disabled:bg-[#ded7c9] disabled:text-[#88847a]"
+          >
+            {isAttached ? "已引用" : "引用到会话"}
+          </button>
+          <span className="rounded-full border border-[#ded7c9] bg-[#fffaf1] px-3 py-1.5 text-xs font-semibold text-[#5d5b55]">
+            {context.folder_type === "company"
+              ? "Company Context"
+              : "Project Context"}
+          </span>
+        </div>
+
+        {context.summary ? (
+          <PanelSection title="Summary">
+            <p className="whitespace-pre-wrap text-sm leading-6 text-[#5d5b55]">
+              {context.summary}
+            </p>
+          </PanelSection>
+        ) : null}
+
+        {context.tags && context.tags.length > 0 ? (
+          <PanelSection title="Tags">
+            <div className="flex flex-wrap gap-2">
+              {context.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-[#f2efe8] px-3 py-1 text-xs font-medium text-[#5d5b55]"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </PanelSection>
+        ) : null}
+
+        <PanelSection title="Content">
+          <div className="whitespace-pre-wrap rounded-2xl border border-[#ded7c9] bg-[#fffaf1] px-4 py-4 text-sm leading-7 text-[#20201d]">
+            {context.content}
+          </div>
+        </PanelSection>
+      </div>
+    </aside>
   );
 }
 
 function ArtifactEditor({
   artifact,
-  userId,
-  folderId,
-  onArtifactUpdated,
-  onArchived,
-  onError,
-}: RightPanelProps & { artifact: Artifact }) {
+  onSave,
+  onArchive,
+  onClose,
+}: {
+  artifact: Artifact;
+  onSave: (input: ArtifactSaveInput) => Promise<void>;
+  onArchive: (input: ArtifactArchiveInput) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState(artifact.title);
   const [content, setContent] = useState(artifact.content);
-  const [summary, setSummary] = useState("");
+  const [targetScope, setTargetScope] = useState<"company" | "project">(
+    "project",
+  );
   const [tags, setTags] = useState("project-context");
+  const [summary, setSummary] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setTitle(artifact.title);
+    setContent(artifact.content);
+  }, [artifact.id, artifact.content, artifact.title]);
 
   const wordCount = useMemo(() => {
     return content.trim() ? content.trim().split(/\s+/).length : 0;
@@ -57,109 +203,188 @@ function ArtifactEditor({
   async function handleSave() {
     setSaving(true);
     try {
-      const updated = await api.updateArtifact(artifact.id, content);
-      onArtifactUpdated(updated);
-    } catch (error) {
-      onError(error instanceof Error ? error.message : "保存失败");
+      await onSave({ title: title.trim() || "Untitled Artifact", content });
     } finally {
       setSaving(false);
     }
   }
 
   async function handleArchive() {
-    if (saving) {
-      return;
-    }
-
-    if (!window.confirm("确认归档当前 Artifact？")) {
-      return;
-    }
-
     setSaving(true);
     try {
-      const updated = await api.updateArtifact(artifact.id, content);
-      const result = await api.archiveArtifact(
-        updated.id,
-        folderId,
-        userId,
-        summary || undefined,
-        splitTags(tags),
-      );
-      onArchived(result);
-    } catch (error) {
-      onError(error instanceof Error ? error.message : "归档失败");
+      await onArchive({
+        title: title.trim() || "Untitled Artifact",
+        content,
+        targetScope,
+        summary: summary.trim() || undefined,
+        tags: splitTags(tags),
+      });
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <aside className="flex w-96 shrink-0 flex-col border-l border-gray-200 bg-white">
-      <div className="border-b border-gray-200 px-5 py-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold text-gray-950">
-              {artifact.title}
-            </h2>
-            <p className="mt-1 text-xs text-gray-500">
-              {artifact.status} · {wordCount} words
-            </p>
-          </div>
-          <span className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-600">
-            草稿
+    <aside className="flex w-[420px] shrink-0 flex-col border-l border-[#ded7c9] bg-[#fffdf8]">
+      <PanelHeader
+        title="Artifact Editor"
+        subtitle={`Draft · ${wordCount} words`}
+        onClose={onClose}
+      />
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+        <label className="mb-4 block">
+          <span className="text-xs font-semibold uppercase tracking-normal text-[#88847a]">
+            文件名
           </span>
-        </div>
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            className="mt-2 w-full rounded-2xl border border-[#ded7c9] bg-[#fffaf1] px-4 py-3 text-sm text-[#20201d] outline-none focus:border-[#7c4dff]"
+          />
+        </label>
+
+        <label className="mb-4 block">
+          <span className="text-xs font-semibold uppercase tracking-normal text-[#88847a]">
+            归档位置
+          </span>
+          <select
+            value={targetScope}
+            onChange={(event) =>
+              setTargetScope(event.target.value as "company" | "project")
+            }
+            className="mt-2 w-full rounded-2xl border border-[#ded7c9] bg-[#fffaf1] px-4 py-3 text-sm text-[#20201d] outline-none focus:border-[#7c4dff]"
+          >
+            <option value="company">Company Context</option>
+            <option value="project">Project Context</option>
+          </select>
+        </label>
+
+        <label className="mb-4 block">
+          <span className="text-xs font-semibold uppercase tracking-normal text-[#88847a]">
+            标签
+          </span>
+          <input
+            value={tags}
+            onChange={(event) => setTags(event.target.value)}
+            placeholder="逗号分隔"
+            className="mt-2 w-full rounded-2xl border border-[#ded7c9] bg-[#fffaf1] px-4 py-3 text-sm text-[#20201d] outline-none focus:border-[#7c4dff]"
+          />
+        </label>
+
+        <label className="mb-4 block">
+          <span className="text-xs font-semibold uppercase tracking-normal text-[#88847a]">
+            摘要
+          </span>
+          <textarea
+            value={summary}
+            onChange={(event) => setSummary(event.target.value)}
+            rows={3}
+            className="mt-2 w-full resize-none rounded-2xl border border-[#ded7c9] bg-[#fffaf1] px-4 py-3 text-sm leading-6 text-[#20201d] outline-none focus:border-[#7c4dff]"
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-xs font-semibold uppercase tracking-normal text-[#88847a]">
+            内容
+          </span>
+          <textarea
+            value={content}
+            onChange={(event) => setContent(event.target.value)}
+            className="mt-2 h-[42vh] min-h-80 w-full resize-none rounded-2xl border border-[#ded7c9] bg-[#fffaf1] px-4 py-4 font-mono text-sm leading-7 text-[#20201d] outline-none focus:border-[#7c4dff]"
+          />
+        </label>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-        <label className="block text-xs font-medium text-gray-600">摘要</label>
-        <input
-          value={summary}
-          onChange={(event) => setSummary(event.target.value)}
-          placeholder="归档摘要，可选"
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-950"
-        />
-
-        <label className="mt-4 block text-xs font-medium text-gray-600">
-          标签
-        </label>
-        <input
-          value={tags}
-          onChange={(event) => setTags(event.target.value)}
-          placeholder="逗号分隔"
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-950"
-        />
-
-        <label className="mt-4 block text-xs font-medium text-gray-600">
-          内容
-        </label>
-        <textarea
-          value={content}
-          onChange={(event) => setContent(event.target.value)}
-          className="mt-1 h-[calc(100vh-22rem)] min-h-72 w-full resize-none rounded border border-gray-300 px-3 py-2 font-mono text-sm leading-6 outline-none focus:border-gray-950"
-          placeholder="编辑文档内容..."
-        />
-      </div>
-
-      <div className="flex shrink-0 gap-2 border-t border-gray-200 bg-gray-50 px-5 py-4">
+      <div className="flex shrink-0 gap-2 border-t border-[#ded7c9] bg-[#fffaf1] px-5 py-4">
         <button
           type="button"
           onClick={() => void handleSave()}
           disabled={saving}
-          className="flex-1 rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex-1 rounded-full border border-[#ded7c9] bg-[#fffdf8] px-4 py-2 text-sm font-semibold text-[#5d5b55] hover:border-[#cfc5b3] hover:text-[#20201d] disabled:cursor-not-allowed disabled:opacity-50"
         >
           保存
         </button>
         <button
           type="button"
           onClick={() => void handleArchive()}
-          disabled={saving || !folderId.trim() || !userId.trim()}
-          className="flex-1 rounded bg-gray-950 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={saving || !content.trim()}
+          className="flex-1 rounded-full bg-[#7c4dff] px-4 py-2 text-sm font-semibold text-white hover:bg-[#5b35d5] disabled:cursor-not-allowed disabled:opacity-50"
         >
           归档
         </button>
       </div>
     </aside>
+  );
+}
+
+function PlaceholderPanel({
+  title,
+  eyebrow,
+  description,
+  onClose,
+}: {
+  title: string;
+  eyebrow: string;
+  description: string;
+  onClose: () => void;
+}) {
+  return (
+    <aside className="flex w-[420px] shrink-0 flex-col border-l border-[#ded7c9] bg-[#fffdf8]">
+      <PanelHeader title={title} subtitle={eyebrow} onClose={onClose} />
+      <div className="flex flex-1 items-center justify-center px-8 text-center text-sm leading-6 text-[#88847a]">
+        {description}
+      </div>
+    </aside>
+  );
+}
+
+function PanelHeader({
+  title,
+  subtitle,
+  onClose,
+}: {
+  title: string;
+  subtitle: string;
+  onClose?: () => void;
+}) {
+  return (
+    <div className="border-b border-[#ded7c9] px-5 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="truncate text-sm font-semibold text-[#20201d]">
+            {title}
+          </h2>
+          <p className="mt-1 truncate text-xs text-[#88847a]">{subtitle}</p>
+        </div>
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full px-3 py-1 text-xs font-semibold text-[#88847a] hover:bg-[#f2efe8] hover:text-[#20201d]"
+          >
+            Close
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function PanelSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="mb-5">
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-normal text-[#88847a]">
+        {title}
+      </h3>
+      {children}
+    </section>
   );
 }
 

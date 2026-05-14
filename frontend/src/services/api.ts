@@ -12,6 +12,7 @@ export interface Message {
   role: "user" | "assistant" | "system";
   content: string;
   model: string | null;
+  agent_id: string | null;
   created_at: string;
 }
 
@@ -52,6 +53,17 @@ export interface InitResult {
   };
 }
 
+export interface Folder {
+  id: string;
+  owner_id: string;
+  parent_folder_id: string | null;
+  name: string;
+  type: "company" | "project";
+  project_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ArchivedDocument {
   id: string;
   artifact_id: string | null;
@@ -62,6 +74,8 @@ export interface ArchivedDocument {
   tags: string[] | null;
   created_by: string;
   created_at: string;
+  folder_type?: "company" | "project";
+  folder_name?: string;
 }
 
 export interface ArchiveResult {
@@ -154,6 +168,16 @@ export class ApiService {
     });
   }
 
+  async updateArtifactDraft(
+    artifactId: string,
+    input: { title?: string; content: string },
+  ): Promise<Artifact> {
+    return request<Artifact>(`/artifacts/${encodeURIComponent(artifactId)}`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
+  }
+
   async archiveArtifact(
     artifactId: string,
     folderId: string,
@@ -170,6 +194,34 @@ export class ApiService {
         summary: summary || undefined,
         tags: tags && tags.length > 0 ? tags : undefined,
       }),
+    });
+  }
+
+  async getArchivedDocuments(folderId: string): Promise<ArchivedDocument[]> {
+    return request<ArchivedDocument[]>(
+      `/folders/${encodeURIComponent(folderId)}/documents`,
+    );
+  }
+
+  async getArchivedDocument(documentId: string): Promise<ArchivedDocument> {
+    return request<ArchivedDocument>(
+      `/documents/${encodeURIComponent(documentId)}`,
+    );
+  }
+
+  async getFolders(userId: string): Promise<Folder[]> {
+    return request<Folder[]>(`/users/${encodeURIComponent(userId)}/folders`);
+  }
+
+  async createFolder(input: {
+    owner_id: string;
+    name: string;
+    type: "company" | "project";
+    project_id?: string;
+  }): Promise<Folder> {
+    return request<Folder>("/folders", {
+      method: "POST",
+      body: JSON.stringify(input),
     });
   }
 }

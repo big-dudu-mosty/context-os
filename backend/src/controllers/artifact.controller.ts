@@ -34,10 +34,11 @@ export class ArtifactController {
     try {
       const id = requireString(req.params.id, "id");
       const content = requireString(req.body.content, "content");
-      const artifact = await this.getArtifactService().updateArtifact(
-        id,
+      const title = optionalString(req.body.title);
+      const artifact = await this.getArtifactService().updateArtifact(id, {
         content,
-      );
+        title,
+      });
 
       sendSuccess(res, artifact);
     } catch (error) {

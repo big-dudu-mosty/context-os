@@ -64,6 +64,7 @@ export function ChatArea({
         role: "user",
         content,
         model: null,
+        agent_id: agentId || null,
         created_at: new Date().toISOString(),
       },
     ]);
@@ -73,7 +74,14 @@ export function ChatArea({
       setInput("");
       await loadMessages();
     } catch (error) {
-      onError(error instanceof Error ? error.message : "发送失败");
+      const errorMsg = error instanceof Error ? error.message : "发送失败";
+      if (isApiKeyError(errorMsg)) {
+        onError(
+          'LLM API 配置错误。请检查后端 .env 文件中的 OPENAI_API_KEY，或设置为 "mock" 使用测试模式。',
+        );
+      } else {
+        onError(errorMsg);
+      }
       await loadMessages();
     } finally {
       setSending(false);
@@ -168,6 +176,16 @@ export function ChatArea({
         </div>
       </div>
     </main>
+  );
+}
+
+function isApiKeyError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("api") ||
+    normalized.includes("key") ||
+    normalized.includes("401") ||
+    normalized.includes("unauthorized")
   );
 }
 
