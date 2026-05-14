@@ -5,6 +5,12 @@ import {
   CreateArtifactInput,
 } from "../models/artifact";
 
+export interface UpdateArtifactInput {
+  content?: string;
+  title?: string;
+  status?: ArtifactStatus;
+}
+
 export class ArtifactRepository {
   async findById(id: string): Promise<Artifact | null> {
     return queryOne<Artifact>("SELECT * FROM artifacts WHERE id = $1", [id]);
@@ -57,5 +63,62 @@ export class ArtifactRepository {
        RETURNING *`,
       [id, status],
     );
+  }
+
+  async update(id: string, input: UpdateArtifactInput): Promise<Artifact> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    if (input.content !== undefined) {
+      fields.push(`content = $${paramIndex++}`);
+      values.push(input.content);
+    }
+
+    if (input.title !== undefined) {
+      fields.push(`title = $${paramIndex++}`);
+      values.push(input.title);
+    }
+
+    if (input.status !== undefined) {
+      fields.push(`status = $${paramIndex++}`);
+      values.push(input.status);
+    }
+
+    if (fields.length === 0) {
+      const artifact = await this.findById(id);
+      if (!artifact) {
+        throw new Error("Artifact not found");
+      }
+
+      return artifact;
+    }
+
+    fields.push("updated_at = NOW()");
+    values.push(id);
+
+    const result = await queryOne<Artifact>(
+      `UPDATE artifacts SET ${fields.join(", ")}
+       WHERE id = $${paramIndex}
+       RETURNING *`,
+      values,
+    );
+
+    if (!result) {
+      throw new Error("Artifact not found");
+    }
+
+    return result;
+  }
+
+  async delete(id: string): Promise<void> {
+    const result = await queryOne<{ id: string }>(
+      "DELETE FROM artifacts WHERE id = $1 RETURNING id",
+      [id],
+    );
+
+    if (!result) {
+      throw new Error("Artifact not found");
+    }
   }
 }

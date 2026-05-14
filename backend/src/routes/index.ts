@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { AgentController } from "../controllers/agent.controller";
+import { ArtifactController } from "../controllers/artifact.controller";
 import { BriefingController } from "../controllers/briefing.controller";
 import { ChatController } from "../controllers/chat.controller";
 import { DemoController } from "../controllers/demo.controller";
@@ -24,6 +25,7 @@ const queryController = new QueryController();
 const demoController = new DemoController();
 const chatController = new ChatController();
 const folderController = new FolderController();
+const artifactController = new ArtifactController();
 
 router.post("/demo/run", (req, res) => {
   void demoController.run(req, res);
@@ -55,6 +57,9 @@ router.put("/sessions/:id/end", (req, res) => {
 router.get("/sessions/:sessionId/messages", (req, res) => {
   void chatController.getMessages(req, res);
 });
+router.get("/sessions/:sessionId/artifacts", (req, res) => {
+  void artifactController.listBySession(req, res);
+});
 
 router.post("/chat", (req, res) => {
   void chatController.sendMessage(req, res);
@@ -75,6 +80,19 @@ router.get("/folders/:id", (req, res) => {
 });
 router.get("/users/:userId/folders", (req, res) => {
   void folderController.getByOwner(req, res);
+});
+
+router.post("/artifacts", (req, res) => {
+  void artifactController.generate(req, res);
+});
+router.put("/artifacts/:id", (req, res) => {
+  void artifactController.update(req, res);
+});
+router.get("/artifacts/:id", (req, res) => {
+  void artifactController.getById(req, res);
+});
+router.delete("/artifacts/:id", (req, res) => {
+  void artifactController.delete(req, res);
 });
 
 router.post("/dream/:agentId", (req, res) => {
