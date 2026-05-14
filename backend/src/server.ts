@@ -1,6 +1,7 @@
 import cors from "cors";
 import { config } from "dotenv";
 import express from "express";
+import { join } from "path";
 import { closeDb } from "./db";
 import routes from "./routes";
 
@@ -11,6 +12,7 @@ const port = Number(process.env.PORT ?? 3000);
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(join(__dirname, "..", "public")));
 
 app.use("/api", routes);
 

@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { AgentController } from "../controllers/agent.controller";
 import { BriefingController } from "../controllers/briefing.controller";
+import { ChatController } from "../controllers/chat.controller";
+import { DemoController } from "../controllers/demo.controller";
 import { DreamController } from "../controllers/dream.controller";
+import { FolderController } from "../controllers/folder.controller";
 import { HandoffController } from "../controllers/handoff.controller";
 import { ProjectController } from "../controllers/project.controller";
 import { QueryController } from "../controllers/query.controller";
@@ -18,6 +21,13 @@ const dreamController = new DreamController();
 const briefingController = new BriefingController();
 const handoffController = new HandoffController();
 const queryController = new QueryController();
+const demoController = new DemoController();
+const chatController = new ChatController();
+const folderController = new FolderController();
+
+router.post("/demo/run", (req, res) => {
+  void demoController.run(req, res);
+});
 
 router.post("/users", (req, res) => {
   void userController.create(req, res);
@@ -42,12 +52,29 @@ router.get("/sessions/:id", (req, res) => {
 router.put("/sessions/:id/end", (req, res) => {
   void sessionController.end(req, res);
 });
+router.get("/sessions/:sessionId/messages", (req, res) => {
+  void chatController.getMessages(req, res);
+});
+
+router.post("/chat", (req, res) => {
+  void chatController.sendMessage(req, res);
+});
 
 router.post("/projects", (req, res) => {
   void projectController.create(req, res);
 });
 router.get("/projects/:id", (req, res) => {
   void projectController.getById(req, res);
+});
+
+router.post("/folders", (req, res) => {
+  void folderController.create(req, res);
+});
+router.get("/folders/:id", (req, res) => {
+  void folderController.getById(req, res);
+});
+router.get("/users/:userId/folders", (req, res) => {
+  void folderController.getByOwner(req, res);
 });
 
 router.post("/dream/:agentId", (req, res) => {

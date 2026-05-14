@@ -18,7 +18,11 @@ export function sendControllerError(res: Response, error: unknown): void {
     error instanceof Error ? error.message : String(error)
   ).toLowerCase();
 
-  if (message.includes("required") || message.includes("Invalid date")) {
+  if (
+    message.includes("required") ||
+    message.includes("invalid date") ||
+    message.includes("must be")
+  ) {
     sendError(res, 400, error);
     return;
   }

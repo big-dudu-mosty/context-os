@@ -24,6 +24,7 @@
     "test:briefing": "BRIEFING_TEST_USE_MOCK=1 tsx src/test-briefing.ts",
     "test:briefing:live": "tsx src/test-briefing.ts",
     "test:handoff": "tsx src/test-handoff.ts",
+    "test:chat": "DATABASE_URL=postgresql://context_os:context_os_dev@localhost:5432/context_os_dev tsx src/test-chat.ts",
     "test:scheduler": "DREAM_TEST_USE_MOCK=1 tsx src/test-scheduler.ts",
     "test": "jest",
     "lint": "eslint src --ext .ts",
