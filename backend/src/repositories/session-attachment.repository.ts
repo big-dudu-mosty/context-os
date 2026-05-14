@@ -2,14 +2,19 @@ import { query, queryOne } from "../db";
 import {
   CreateSessionAttachmentInput,
   SessionAttachment,
+  SessionAttachmentWithDocument,
 } from "../models/session-attachment";
 
 export class SessionAttachmentRepository {
-  async findBySession(sessionId: string): Promise<SessionAttachment[]> {
-    return query<SessionAttachment>(
-      `SELECT * FROM session_attachments
-       WHERE session_id = $1
-       ORDER BY attached_at DESC`,
+  async findBySession(
+    sessionId: string,
+  ): Promise<SessionAttachmentWithDocument[]> {
+    return query<SessionAttachmentWithDocument>(
+      `SELECT sa.*, ad.title, ad.content, ad.summary
+       FROM session_attachments sa
+       JOIN archived_documents ad ON sa.document_id = ad.id
+       WHERE sa.session_id = $1
+       ORDER BY sa.attached_at DESC`,
       [sessionId],
     );
   }

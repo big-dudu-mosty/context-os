@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { AgentController } from "../controllers/agent.controller";
+import { ArchiveController } from "../controllers/archive.controller";
 import { ArtifactController } from "../controllers/artifact.controller";
 import { BriefingController } from "../controllers/briefing.controller";
 import { ChatController } from "../controllers/chat.controller";
@@ -26,6 +27,7 @@ const demoController = new DemoController();
 const chatController = new ChatController();
 const folderController = new FolderController();
 const artifactController = new ArtifactController();
+const archiveController = new ArchiveController();
 
 router.post("/demo/run", (req, res) => {
   void demoController.run(req, res);
@@ -60,6 +62,12 @@ router.get("/sessions/:sessionId/messages", (req, res) => {
 router.get("/sessions/:sessionId/artifacts", (req, res) => {
   void artifactController.listBySession(req, res);
 });
+router.post("/sessions/:sessionId/attach", (req, res) => {
+  void archiveController.attachToSession(req, res);
+});
+router.get("/sessions/:sessionId/attachments", (req, res) => {
+  void archiveController.getAttachments(req, res);
+});
 
 router.post("/chat", (req, res) => {
   void chatController.sendMessage(req, res);
@@ -81,6 +89,9 @@ router.get("/folders/:id", (req, res) => {
 router.get("/users/:userId/folders", (req, res) => {
   void folderController.getByOwner(req, res);
 });
+router.get("/folders/:folderId/documents", (req, res) => {
+  void archiveController.listDocuments(req, res);
+});
 
 router.post("/artifacts", (req, res) => {
   void artifactController.generate(req, res);
@@ -93,6 +104,13 @@ router.get("/artifacts/:id", (req, res) => {
 });
 router.delete("/artifacts/:id", (req, res) => {
   void artifactController.delete(req, res);
+});
+
+router.post("/archive", (req, res) => {
+  void archiveController.archive(req, res);
+});
+router.get("/documents/:id", (req, res) => {
+  void archiveController.getDocument(req, res);
 });
 
 router.post("/dream/:agentId", (req, res) => {
