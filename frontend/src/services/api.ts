@@ -26,6 +26,32 @@ export interface Artifact {
   updated_at: string;
 }
 
+export interface InitResult {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  agent: {
+    id: string;
+    name: string;
+    type?: string;
+  };
+  project: {
+    id: string;
+    name: string;
+    slug?: string;
+  };
+  folder: {
+    id: string;
+    name: string;
+  };
+  session: {
+    id: string;
+    project_id?: string | null;
+  };
+}
+
 export interface ArchivedDocument {
   id: string;
   artifact_id: string | null;
@@ -56,6 +82,28 @@ export interface ArchiveResult {
 }
 
 export class ApiService {
+  async initialize(userName: string): Promise<InitResult> {
+    return request<InitResult>("/init", {
+      method: "POST",
+      body: JSON.stringify({ user_name: userName }),
+    });
+  }
+
+  async createSession(
+    userId: string,
+    agentId: string,
+    projectId?: string | null,
+  ): Promise<InitResult["session"]> {
+    return request<InitResult["session"]>("/sessions/new", {
+      method: "POST",
+      body: JSON.stringify({
+        user_id: userId,
+        agent_id: agentId,
+        project_id: projectId || undefined,
+      }),
+    });
+  }
+
   async chat(
     sessionId: string,
     content: string,
@@ -126,10 +174,7 @@ export class ApiService {
   }
 }
 
-async function request<T>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {

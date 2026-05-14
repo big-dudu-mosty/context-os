@@ -8,6 +8,7 @@ import { DemoController } from "../controllers/demo.controller";
 import { DreamController } from "../controllers/dream.controller";
 import { FolderController } from "../controllers/folder.controller";
 import { HandoffController } from "../controllers/handoff.controller";
+import { InitController } from "../controllers/init.controller";
 import { ProjectController } from "../controllers/project.controller";
 import { QueryController } from "../controllers/query.controller";
 import { SessionController } from "../controllers/session.controller";
@@ -28,9 +29,17 @@ const chatController = new ChatController();
 const folderController = new FolderController();
 const artifactController = new ArtifactController();
 const archiveController = new ArchiveController();
+const initController = new InitController();
 
 router.post("/demo/run", (req, res) => {
   void demoController.run(req, res);
+});
+
+router.post("/init", (req, res) => {
+  void initController.initialize(req, res);
+});
+router.post("/sessions/new", (req, res) => {
+  void initController.createSession(req, res);
 });
 
 router.post("/users", (req, res) => {

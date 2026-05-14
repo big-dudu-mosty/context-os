@@ -28,7 +28,13 @@ export function RightPanel(props: RightPanelProps) {
     );
   }
 
-  return <ArtifactEditor key={props.artifact.id} {...props} artifact={props.artifact} />;
+  return (
+    <ArtifactEditor
+      key={props.artifact.id}
+      {...props}
+      artifact={props.artifact}
+    />
+  );
 }
 
 function ArtifactEditor({
@@ -106,9 +112,7 @@ function ArtifactEditor({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-        <label className="block text-xs font-medium text-gray-600">
-          摘要
-        </label>
+        <label className="block text-xs font-medium text-gray-600">摘要</label>
         <input
           value={summary}
           onChange={(event) => setSummary(event.target.value)}
