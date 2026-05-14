@@ -67,14 +67,14 @@ function App() {
             AI Context Workbench
           </h1>
           <nav className="flex items-center gap-1 text-sm text-gray-500">
-            <span className="rounded px-2 py-1 text-gray-950">Workbench</span>
-            <span className="rounded px-2 py-1">Inbox</span>
-            <span className="rounded px-2 py-1">Dream</span>
+            <span className="rounded px-2 py-1 text-gray-950">工作台</span>
+            <span className="rounded px-2 py-1">收件箱</span>
+            <span className="rounded px-2 py-1">梦境</span>
           </nav>
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          Backend: http://localhost:3000/api
+          后端: http://localhost:3000/api
         </div>
       </header>
 
@@ -85,12 +85,12 @@ function App() {
               type="button"
               className="w-full rounded bg-gray-950 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800"
             >
-              New Session
+              新建会话
             </button>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-            <SectionTitle label="Recent Sessions" />
+            <SectionTitle label="最近会话" />
             <button
               type="button"
               className="mb-4 w-full rounded border border-gray-200 bg-gray-50 px-3 py-2 text-left text-sm text-gray-800"
@@ -101,7 +101,7 @@ function App() {
               </span>
             </button>
 
-            <SectionTitle label="Runtime IDs" />
+            <SectionTitle label="运行时 ID" />
             <Field label="User ID" value={userId} onChange={setUserId} />
             <Field
               label="Session ID"
@@ -116,7 +116,7 @@ function App() {
               placeholder="可选"
             />
 
-            <SectionTitle label="Agent / Model" />
+            <SectionTitle label="智能体 / 模型" />
             <label className="mb-3 block">
               <span className="mb-1 block text-xs font-medium text-gray-500">
                 Model
@@ -134,7 +134,7 @@ function App() {
               </select>
             </label>
 
-            <SectionTitle label="Artifact" />
+            <SectionTitle label="文档草稿" />
             <Field
               label="Title"
               value={artifactTitle}
@@ -151,7 +151,7 @@ function App() {
               />
             </label>
 
-            <SectionTitle label="Archived Files" />
+            <SectionTitle label="归档文件" />
             <div className="space-y-2">
               {archivedDocuments.length === 0 ? (
                 <div className="rounded border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-500">

@@ -100,14 +100,14 @@ function ArtifactEditor({
             </p>
           </div>
           <span className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-600">
-            Draft
+            草稿
           </span>
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         <label className="block text-xs font-medium text-gray-600">
-          Summary
+          摘要
         </label>
         <input
           value={summary}
@@ -117,7 +117,7 @@ function ArtifactEditor({
         />
 
         <label className="mt-4 block text-xs font-medium text-gray-600">
-          Tags
+          标签
         </label>
         <input
           value={tags}
@@ -127,7 +127,7 @@ function ArtifactEditor({
         />
 
         <label className="mt-4 block text-xs font-medium text-gray-600">
-          Content
+          内容
         </label>
         <textarea
           value={content}
