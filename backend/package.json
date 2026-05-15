@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "migrate:up": "node-pg-migrate --config-file .migrate.json up",
     "migrate:down": "node-pg-migrate --config-file .migrate.json down",
