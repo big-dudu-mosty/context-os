@@ -1,4 +1,5 @@
 {
+  "database-url-var": "DATABASE_URL",
   "url": "postgresql://context_os:context_os_dev@localhost:5432/context_os_dev",
   "migrations-table": "pgmigrations",
   "migrations-dir": "migrations",
