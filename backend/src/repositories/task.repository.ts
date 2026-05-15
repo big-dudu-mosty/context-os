@@ -24,6 +24,16 @@ export class TaskRepository {
     );
   }
 
+  async findRecentByOwner(ownerId: string, limit = 20): Promise<Task[]> {
+    return query<Task>(
+      `SELECT * FROM tasks
+       WHERE owner_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [ownerId, limit],
+    );
+  }
+
   async create(input: CreateTaskInput): Promise<Task> {
     const result = await queryOne<Task>(
       `INSERT INTO tasks (

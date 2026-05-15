@@ -15,6 +15,16 @@ export class RiskRepository {
     );
   }
 
+  async findRecentByOwner(ownerId: string, limit = 20): Promise<Risk[]> {
+    return query<Risk>(
+      `SELECT * FROM risks
+       WHERE owner_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [ownerId, limit],
+    );
+  }
+
   async create(input: CreateRiskInput): Promise<Risk> {
     const result = await queryOne<Risk>(
       `INSERT INTO risks (

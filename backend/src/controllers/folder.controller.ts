@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { CreateFolderInput } from "../models/folder";
 import { FolderRepository } from "../repositories/folder.repository";
+import { ProjectRepository } from "../repositories/project.repository";
 import {
   optionalString,
   requireString,
@@ -13,6 +14,7 @@ type FolderType = CreateFolderInput["type"];
 
 export class FolderController {
   private readonly folderRepo = new FolderRepository();
+  private readonly projectRepo = new ProjectRepository();
 
   async create(req: Request, res: Response): Promise<void> {
     try {
@@ -55,6 +57,23 @@ export class FolderController {
     try {
       const userId = requireString(req.params.userId, "userId");
       const folders = await this.folderRepo.findByOwner(userId);
+      sendSuccess(res, folders);
+    } catch (error) {
+      sendControllerError(res, error);
+    }
+  }
+
+  async getByProject(req: Request, res: Response): Promise<void> {
+    try {
+      const projectId = requireString(req.params.projectId, "projectId");
+      const userId = requireString(req.query.user_id, "user_id");
+
+      if (!(await this.projectRepo.isMember(projectId, userId))) {
+        sendError(res, 403, "您不是该项目的成员");
+        return;
+      }
+
+      const folders = await this.folderRepo.findByProject(projectId);
       sendSuccess(res, folders);
     } catch (error) {
       sendControllerError(res, error);

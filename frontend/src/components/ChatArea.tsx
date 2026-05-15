@@ -115,7 +115,7 @@ export function ChatArea({
         <div>
           <h2 className="text-sm font-semibold text-gray-950">当前会话</h2>
           <p className="mt-0.5 text-xs text-gray-500">
-            直接对话，随后生成 Artifact 草稿
+            直接对话，随后生成产物草稿
           </p>
         </div>
         <button
@@ -206,7 +206,7 @@ function MessageBubble({ message }: { message: Message }) {
             isUser ? "text-gray-300" : "text-gray-500"
           }`}
         >
-          {message.role}
+          {message.role === "user" ? "用户" : message.role === "assistant" ? "助手" : message.role}
         </div>
         <div className="whitespace-pre-wrap break-words">{message.content}</div>
       </div>

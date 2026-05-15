@@ -49,8 +49,24 @@ export interface InitResult {
   };
   session: {
     id: string;
+    owner_id?: string;
     project_id?: string | null;
   };
+}
+
+export interface SessionRecord {
+  id: string;
+  agent_id: string;
+  owner_id: string;
+  project_id: string | null;
+  started_at: string;
+  ended_at: string | null;
+  transcript_path: string | null;
+  transcript_hash: string | null;
+  dream_status: string;
+  dream_attempts: number;
+  dream_max_attempts: number;
+  dreamed_at: string | null;
 }
 
 export interface Folder {
@@ -78,6 +94,14 @@ export interface ArchivedDocument {
   folder_name?: string;
 }
 
+export interface ChatContextDocument {
+  id: string;
+  title: string;
+  content: string;
+  summary?: string | null;
+  tags?: string[] | null;
+}
+
 export interface ArchiveResult {
   archivedDocument: ArchivedDocument;
   contextPackage: {
@@ -93,6 +117,71 @@ export interface ArchiveResult {
     observationsCreated: number;
     conflictsDetected: number;
   };
+}
+
+export interface HandoffRecord {
+  id: string;
+  from_owner_id: string;
+  to_owner_id: string;
+  session_id: string;
+  title: string | null;
+  message: string;
+  context_summary: string | null;
+  related_document_id: string | null;
+  package_id: string | null;
+  status: string;
+  accepted_at: string | null;
+  created_at: string;
+  from_user_name?: string;
+  to_user_name?: string;
+  related_document_title?: string | null;
+  source_project_id?: string | null;
+}
+
+export interface HandoffStartResult {
+  handoffId: string;
+  session: InitResult["session"] & {
+    agent_id?: string;
+    owner_id?: string;
+  };
+  attachedDocumentId: string | null;
+  linkedPackageId: string | null;
+}
+
+export interface ProjectMember {
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+/** 当前用户参与的项目（列表） */
+export interface UserProject {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface CreateHandoffResult {
+  handoffId: string;
+  contextSummary: string;
+}
+
+export interface DreamReviewItem {
+  id: string;
+  owner_id: string;
+  project_id: string | null;
+  package_id: string | null;
+  source_type: string;
+  source_id: string | null;
+  title: string;
+  summary: string | null;
+  status: "pending" | "approved" | "rejected" | "edited" | string;
+  confidence: number | null;
+  payload: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  reviewed_at: string | null;
 }
 
 export class ApiService {
@@ -118,11 +207,18 @@ export class ApiService {
     });
   }
 
+  async getUserSessions(userId: string, limit = 20): Promise<SessionRecord[]> {
+    return request<SessionRecord[]>(
+      `/users/${encodeURIComponent(userId)}/sessions?limit=${limit}`,
+    );
+  }
+
   async chat(
     sessionId: string,
     content: string,
     model: string,
     agentId?: string,
+    contextDocuments: ChatContextDocument[] = [],
   ): Promise<Message> {
     const data = await request<Message>("/chat", {
       method: "POST",
@@ -131,6 +227,8 @@ export class ApiService {
         content,
         model,
         agent_id: agentId || undefined,
+        context_documents:
+          contextDocuments.length > 0 ? contextDocuments : undefined,
       }),
     });
 
@@ -213,16 +311,187 @@ export class ApiService {
     return request<Folder[]>(`/users/${encodeURIComponent(userId)}/folders`);
   }
 
+  async getProjectFolders(projectId: string, userId: string): Promise<Folder[]> {
+    return request<Folder[]>(
+      `/projects/${encodeURIComponent(projectId)}/folders?user_id=${encodeURIComponent(userId)}`,
+    );
+  }
+
   async createFolder(input: {
     owner_id: string;
     name: string;
     type: "company" | "project";
     project_id?: string;
+    parent_folder_id?: string | null;
   }): Promise<Folder> {
     return request<Folder>("/folders", {
       method: "POST",
       body: JSON.stringify(input),
     });
+  }
+
+  async attachDocumentToSession(
+    sessionId: string,
+    documentId: string,
+  ): Promise<unknown> {
+    return request<unknown>(
+      `/sessions/${encodeURIComponent(sessionId)}/attach`,
+      {
+        method: "POST",
+        body: JSON.stringify({ document_id: documentId }),
+      },
+    );
+  }
+
+  async listProjectMembers(projectId: string): Promise<ProjectMember[]> {
+    return request<ProjectMember[]>(
+      `/projects/${encodeURIComponent(projectId)}/members`,
+    );
+  }
+
+  async addProjectMember(
+    projectId: string,
+    body: {
+      actor_user_id: string;
+      invite_user_name: string;
+      role?: string;
+    },
+  ): Promise<{ members: ProjectMember[]; alreadyMember?: boolean }> {
+    return request<{ members: ProjectMember[]; alreadyMember?: boolean }>(
+      `/projects/${encodeURIComponent(projectId)}/members`,
+      {
+        method: "POST",
+        body: JSON.stringify(body),
+      },
+    );
+  }
+
+  async listUserProjects(userId: string): Promise<UserProject[]> {
+    return request<UserProject[]>(
+      `/users/${encodeURIComponent(userId)}/projects`,
+    );
+  }
+
+  async setSessionProject(
+    sessionId: string,
+    body: { user_id: string; project_id: string },
+  ): Promise<SessionRecord> {
+    return request<SessionRecord>(
+      `/sessions/${encodeURIComponent(sessionId)}/project`,
+      {
+        method: "PUT",
+        body: JSON.stringify(body),
+      },
+    );
+  }
+
+  async moveArchivedDocument(
+    documentId: string,
+    body: { user_id: string; folder_id: string },
+  ): Promise<ArchivedDocument> {
+    return request<ArchivedDocument>(
+      `/documents/${encodeURIComponent(documentId)}/folder`,
+      {
+        method: "PUT",
+        body: JSON.stringify(body),
+      },
+    );
+  }
+
+  async createHandoff(input: {
+    from_owner_id: string;
+    to_owner_id: string;
+    session_id: string;
+    message: string;
+    title?: string;
+    related_document_id?: string;
+    package_id?: string;
+  }): Promise<CreateHandoffResult> {
+    return request<CreateHandoffResult>("/handoff", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async getHandoffInbox(userId: string): Promise<HandoffRecord[]> {
+    return request<HandoffRecord[]>(
+      `/handoff/inbox/${encodeURIComponent(userId)}`,
+    );
+  }
+
+  async getHandoffSent(userId: string): Promise<HandoffRecord[]> {
+    return request<HandoffRecord[]>(
+      `/handoff/sent/${encodeURIComponent(userId)}`,
+    );
+  }
+
+  async startSessionFromHandoff(
+    handoffId: string,
+    userId: string,
+  ): Promise<HandoffStartResult> {
+    return request<HandoffStartResult>(
+      `/handoff/${encodeURIComponent(handoffId)}/start-session`,
+      {
+        method: "POST",
+        body: JSON.stringify({ user_id: userId }),
+      },
+    );
+  }
+
+  async getDreamReviewItems(userId: string): Promise<DreamReviewItem[]> {
+    return request<DreamReviewItem[]>(
+      `/dream-review/${encodeURIComponent(userId)}`,
+    );
+  }
+
+  async approveAllDreamReview(userId: string): Promise<DreamReviewItem[]> {
+    return request<DreamReviewItem[]>(
+      `/dream-review/${encodeURIComponent(userId)}/approve-all`,
+      {
+        method: "POST",
+        body: JSON.stringify({ user_id: userId }),
+      },
+    );
+  }
+
+  async approveDreamReviewItem(
+    itemId: string,
+    userId: string,
+  ): Promise<DreamReviewItem> {
+    return request<DreamReviewItem>(
+      `/dream-review/${encodeURIComponent(itemId)}/approve`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ user_id: userId }),
+      },
+    );
+  }
+
+  async rejectDreamReviewItem(
+    itemId: string,
+    userId: string,
+  ): Promise<DreamReviewItem> {
+    return request<DreamReviewItem>(
+      `/dream-review/${encodeURIComponent(itemId)}/reject`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ user_id: userId }),
+      },
+    );
+  }
+
+  async editDreamReviewItem(
+    itemId: string,
+    userId: string,
+    input: { title?: string; summary?: string },
+  ): Promise<DreamReviewItem> {
+    return request<DreamReviewItem>(
+      `/dream-review/${encodeURIComponent(itemId)}/edit`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ user_id: userId, ...input }),
+      },
+    );
   }
 }
 
@@ -237,7 +506,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const payload = (await res.json().catch(() => ({}))) as ApiEnvelope<T>;
 
   if (!res.ok || payload.error) {
-    throw new Error(payload.error || `Request failed: ${res.status}`);
+    throw new Error(payload.error || `请求失败：${res.status}`);
   }
 
   return payload.data as T;

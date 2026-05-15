@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { ArchivedDocument, InitResult } from "../services/api";
 
 export interface WorkbenchSession {
@@ -7,15 +7,29 @@ export interface WorkbenchSession {
   session: InitResult["session"];
 }
 
+/** 项目下子资料夹及其归档条目（不含项目根；根目录条目单独平铺） */
+export interface ProjectContextGroup {
+  folderId: string;
+  folderLabel: string;
+  documents: ArchivedDocument[];
+}
+
 interface SidebarProps {
   sessions: WorkbenchSession[];
   companyContexts: ArchivedDocument[];
-  projectContexts: ArchivedDocument[];
+  companyGroupTitle: string;
+  projectName: string;
+  /** 项目根资料夹内的归档（展示在标题下，不再单独占「根 ·」折叠块） */
+  projectRootDocuments: ArchivedDocument[];
+  projectContextGroups: ProjectContextGroup[];
+  githubStatusLabel: string;
   currentSessionId: string;
   selectedContextId?: string;
   onNewSession: () => void;
   onSelectSession: (session: WorkbenchSession) => void;
   onSelectContext: (context: ArchivedDocument) => void;
+  onManageProjectMembers: () => void;
+  onCreateProjectSubfolder: () => void;
   onGitHubSync: () => void;
   onAccountClick: () => void;
   userName: string;
@@ -25,110 +39,218 @@ interface SidebarProps {
 export function Sidebar({
   sessions,
   companyContexts,
-  projectContexts,
+  companyGroupTitle,
+  projectName,
+  projectRootDocuments,
+  projectContextGroups,
+  githubStatusLabel,
   currentSessionId,
   selectedContextId,
   onNewSession,
   onSelectSession,
   onSelectContext,
+  onManageProjectMembers,
+  onCreateProjectSubfolder,
   onGitHubSync,
   onAccountClick,
   userName,
   loading,
 }: SidebarProps) {
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-[#ded7c9] bg-[#fffdf8]">
-      <div className="flex h-14 items-center justify-between border-b border-[#ded7c9] px-4">
-        <div className="font-semibold text-[#20201d]">Collab Pro</div>
+    <aside className="flex w-[320px] shrink-0 flex-col border-r border-[#ded7c9] bg-[#fffaf1] text-[#5b4c39]">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#ded7c9] px-4">
+        <div className="text-[15px] font-bold">协作专业版</div>
         <button
           type="button"
-          className="rounded-lg px-2 py-1 text-sm text-[#88847a] hover:bg-[#f2efe8] hover:text-[#20201d]"
-          aria-label="Collapse sidebar"
+          className="grid h-8 w-8 place-items-center rounded-md text-sm font-bold text-[#706654] hover:bg-[#f2efe8]"
+          aria-label="收起侧栏"
         >
-          Menu
+          ≡
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
         <button
           type="button"
           onClick={onNewSession}
           disabled={loading}
-          className="mb-4 flex w-full items-center gap-2 rounded-2xl border border-[#ded7c9] bg-[#20201d] px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_10px_24px_rgba(48,39,22,0.12)] hover:bg-[#35342f] disabled:cursor-not-allowed disabled:opacity-50"
+          className="mb-5 flex h-9 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-[#6c5f4b] hover:bg-[#f7f0e3] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <span className="text-base leading-none">+</span>
-          <span>New session</span>
+          <span className="text-lg leading-none">+</span>
+          <span>新建会话</span>
         </button>
 
-        <SidebarSection title="Recent Sessions">
-          {sessions.length === 0 ? (
-            <EmptyLine label="No sessions yet" />
-          ) : (
-            sessions.map((session) => (
+        <SidebarSection title="最近会话">
+          <div className="space-y-2">
+            {sessions.length === 0 ? (
+              <EmptyLine>暂无会话</EmptyLine>
+            ) : null}
+            {sessions.slice(0, 8).map((session) => (
               <button
                 key={session.id}
                 type="button"
                 onClick={() => onSelectSession(session)}
-                className={`w-full rounded-xl px-3 py-2 text-left text-sm transition ${
+                className={`w-full rounded-md px-3 py-2 text-left text-sm font-semibold transition ${
                   session.id === currentSessionId
-                    ? "bg-[#f2efe8] font-semibold text-[#20201d]"
-                    : "text-[#5d5b55] hover:bg-[#f6f4ef] hover:text-[#20201d]"
+                    ? "bg-[#f8f1e3] text-[#5b4c39]"
+                    : "text-[#5b4c39] hover:bg-[#f8f1e3]"
                 }`}
               >
-                <div className="truncate">{session.title}</div>
+                <span className="block truncate">
+                  {decorateSessionTitle(session.title)}
+                </span>
               </button>
-            ))
-          )}
+            ))}
+          </div>
         </SidebarSection>
 
-        <SidebarSection title="Company Context">
-          <ContextList
-            contexts={companyContexts}
+        <SidebarSection title="公司上下文">
+          <ContextGroup title={companyGroupTitle}>
+            <ContextRows
+              contexts={companyContexts}
+              selectedContextId={selectedContextId}
+              emptyLabel="暂无公司上下文"
+              onSelectContext={onSelectContext}
+            />
+          </ContextGroup>
+        </SidebarSection>
+
+        <SidebarSection title="项目上下文">
+          <ProjectContextSection
+            projectName={projectName}
+            rootDocuments={projectRootDocuments}
+            groups={projectContextGroups}
             selectedContextId={selectedContextId}
-            emptyLabel="No company context"
             onSelectContext={onSelectContext}
+            onManageProjectMembers={onManageProjectMembers}
+            onCreateProjectSubfolder={onCreateProjectSubfolder}
           />
         </SidebarSection>
 
-        <SidebarSection title="Project Context">
-          <ContextList
-            contexts={projectContexts}
-            selectedContextId={selectedContextId}
-            emptyLabel="No project context"
-            onSelectContext={onSelectContext}
-          />
-        </SidebarSection>
-
-        <SidebarSection title="GitHub Sync">
+        <SidebarSection title="GitHub 同步">
           <button
             type="button"
             onClick={onGitHubSync}
-            className="w-full rounded-xl border border-dashed border-[#ded7c9] bg-[#fffaf1] px-3 py-3 text-left text-sm text-[#88847a] hover:border-[#cfc5b3] hover:text-[#20201d]"
+            className="w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-[#5b4c39] hover:bg-[#f8f1e3]"
           >
-            Not connected
+            {githubStatusLabel}
           </button>
         </SidebarSection>
       </div>
 
-      <div className="border-t border-[#ded7c9] p-3">
+      <button
+        type="button"
+        onClick={onAccountClick}
+        className="flex h-14 shrink-0 items-center gap-3 border-t border-[#ded7c9] px-5 text-left hover:bg-[#f8f1e3]"
+      >
+        <span className="grid h-7 w-7 place-items-center rounded-md bg-[#fff8ea] text-sm font-bold text-[#3287a8]">
+          {userName.slice(0, 1).toUpperCase()}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-sm font-bold">
+          {displayName(userName)}
+        </span>
+        <span className="text-sm font-bold">...</span>
+      </button>
+    </aside>
+  );
+}
+
+function ProjectContextSection({
+  projectName,
+  rootDocuments,
+  groups,
+  selectedContextId,
+  onSelectContext,
+  onManageProjectMembers,
+  onCreateProjectSubfolder,
+}: {
+  projectName: string;
+  rootDocuments: ArchivedDocument[];
+  groups: ProjectContextGroup[];
+  selectedContextId?: string;
+  onSelectContext: (context: ArchivedDocument) => void;
+  onManageProjectMembers: () => void;
+  onCreateProjectSubfolder: () => void;
+}) {
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+
+  function isOpen(folderId: string): boolean {
+    return openMap[folderId] !== false;
+  }
+
+  function toggle(folderId: string) {
+    setOpenMap((prev) => {
+      const expanded = prev[folderId] !== false;
+      return { ...prev, [folderId]: !expanded };
+    });
+  }
+
+  if (!projectName.trim()) {
+    return (
+      <div className="px-3">
+        <EmptyLine>未加载项目资料库</EmptyLine>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 px-2">
+      <div className="flex items-center justify-between gap-2 rounded-md border border-[#eee8dc] bg-[#fffdf8] px-2 py-2">
+        <span className="min-w-0 truncate text-sm font-bold text-[#5b4c39]">
+          {projectName}
+        </span>
         <button
           type="button"
-          onClick={onAccountClick}
-          className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 hover:bg-[#f2efe8]"
+          onClick={onManageProjectMembers}
+          className="shrink-0 rounded-md border border-[#ded7c9] bg-[#fffaf1] px-2 py-1 text-xs font-bold text-[#5b4c39] hover:bg-[#f8f1e3]"
         >
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-[#7c4dff] text-sm font-semibold uppercase text-white">
-            {userName.slice(0, 1)}
-          </div>
-          <div className="min-w-0 flex-1 text-left">
-            <div className="truncate text-sm font-semibold text-[#20201d]">
-              {userName}
-            </div>
-            <div className="text-xs text-[#88847a]">Workspace account</div>
-          </div>
-          <span className="text-[#88847a]">...</span>
+          成员
         </button>
       </div>
-    </aside>
+      <button
+        type="button"
+        onClick={onCreateProjectSubfolder}
+        className="w-full rounded-md border border-dashed border-[#cfc5b3] px-3 py-2 text-left text-xs font-bold text-[#746b5c] hover:bg-[#f8f1e3]"
+      >
+        + 新建项目资料夹
+      </button>
+
+      {rootDocuments.length > 0 ? (
+        <div className="space-y-1 pl-1">
+          <ContextRows
+            contexts={rootDocuments}
+            selectedContextId={selectedContextId}
+            emptyLabel="暂无条目"
+            onSelectContext={onSelectContext}
+          />
+        </div>
+      ) : null}
+
+      {groups.map((group) => (
+        <div key={group.folderId} className="rounded-md border border-[#eee8dc] bg-[#fffdf8]/60">
+          <button
+            type="button"
+            onClick={() => toggle(group.folderId)}
+            className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs font-bold text-[#776d5c]"
+          >
+            <span className="min-w-0 truncate">{group.folderLabel}</span>
+            <span className="shrink-0 text-[#b0a896]">
+              {isOpen(group.folderId) ? "▼" : "▶"}
+            </span>
+          </button>
+          {isOpen(group.folderId) ? (
+            <div className="border-t border-[#eee8dc] px-1 pb-2 pt-1">
+              <ContextRows
+                contexts={group.documents}
+                selectedContextId={selectedContextId}
+                emptyLabel="暂无条目"
+                onSelectContext={onSelectContext}
+              />
+            </div>
+          ) : null}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -141,15 +263,28 @@ function SidebarSection({
 }) {
   return (
     <section className="mb-5">
-      <h3 className="mb-2 px-2 text-xs font-semibold uppercase tracking-normal text-[#88847a]">
-        {title}
-      </h3>
-      <div className="space-y-1">{children}</div>
+      <h3 className="mb-2 px-3 text-xs font-bold text-[#776d5c]">{title}</h3>
+      {children}
     </section>
   );
 }
 
-function ContextList({
+function ContextGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <div className="mb-2 px-5 text-sm font-bold text-[#5b4c39]">{title}</div>
+      <div className="space-y-1 pl-3">{children}</div>
+    </div>
+  );
+}
+
+function ContextRows({
   contexts,
   selectedContextId,
   emptyLabel,
@@ -160,34 +295,50 @@ function ContextList({
   emptyLabel: string;
   onSelectContext: (context: ArchivedDocument) => void;
 }) {
-  if (contexts.length === 0) {
-    return <EmptyLine label={emptyLabel} />;
+  if (contexts.length > 0) {
+    return (
+      <>
+        {contexts.map((context) => (
+          <button
+            key={context.id}
+            type="button"
+            onClick={() => onSelectContext(context)}
+            className={`w-full rounded-md px-3 py-2 text-left text-sm font-semibold transition ${
+              selectedContextId === context.id
+                ? "bg-[#f8f1e3] text-[#5b4c39]"
+                : "text-[#5b4c39] hover:bg-[#f8f1e3]"
+            }`}
+          >
+            <span className="block truncate">{context.title}</span>
+          </button>
+        ))}
+      </>
+    );
   }
 
+  return <EmptyLine>{emptyLabel}</EmptyLine>;
+}
+
+function EmptyLine({ children }: { children: ReactNode }) {
   return (
-    <>
-      {contexts.map((context) => (
-        <button
-          key={context.id}
-          type="button"
-          onClick={() => onSelectContext(context)}
-          className={`w-full rounded-xl px-3 py-2 text-left text-sm transition ${
-            selectedContextId === context.id
-              ? "bg-[#f2efe8] font-semibold text-[#20201d]"
-              : "text-[#5d5b55] hover:bg-[#f6f4ef] hover:text-[#20201d]"
-          }`}
-        >
-          <div className="truncate">{context.title}</div>
-        </button>
-      ))}
-    </>
+    <div className="rounded-md px-3 py-2 text-sm font-semibold text-[#8a806f]">
+      <span className="block truncate">{children}</span>
+    </div>
   );
 }
 
-function EmptyLine({ label }: { label: string }) {
-  return (
-    <div className="rounded-xl border border-dashed border-[#ded7c9] px-3 py-2 text-sm text-[#88847a]">
-      {label}
-    </div>
-  );
+function decorateSessionTitle(title: string): string {
+  if (!title || title === "当前会话" || title === "新建会话") {
+    return "未命名会话";
+  }
+
+  return title;
+}
+
+function displayName(name: string): string {
+  if (!name) {
+    return "账号";
+  }
+
+  return name.slice(0, 1).toUpperCase() + name.slice(1);
 }

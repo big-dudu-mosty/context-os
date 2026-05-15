@@ -20,6 +20,15 @@ export class FolderRepository {
     );
   }
 
+  async findByProject(projectId: string): Promise<Folder[]> {
+    return query<Folder>(
+      `SELECT * FROM folders
+       WHERE project_id = $1
+       ORDER BY parent_folder_id NULLS FIRST, name ASC, created_at ASC`,
+      [projectId],
+    );
+  }
+
   async create(input: CreateFolderInput): Promise<Folder> {
     const result = await queryOne<Folder>(
       `INSERT INTO folders (owner_id, parent_folder_id, name, type, project_id)

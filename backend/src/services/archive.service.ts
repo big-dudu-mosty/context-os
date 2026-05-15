@@ -4,6 +4,7 @@ import { ArchivedDocumentRepository } from "../repositories/archived-document.re
 import { ArtifactRepository } from "../repositories/artifact.repository";
 import { ContextPackageRepository } from "../repositories/context-package.repository";
 import { FolderRepository } from "../repositories/folder.repository";
+import { ProjectRepository } from "../repositories/project.repository";
 import { SessionAttachmentRepository } from "../repositories/session-attachment.repository";
 import { SessionRepository } from "../repositories/session.repository";
 import { ExtractionResult, ExtractionService } from "./extraction.service";
@@ -12,6 +13,7 @@ export interface ArchiveServiceOptions {
   archivedDocRepo?: ArchivedDocumentRepository;
   artifactRepo?: ArtifactRepository;
   folderRepo?: FolderRepository;
+  projectRepo?: ProjectRepository;
   packageRepo?: ContextPackageRepository;
   attachmentRepo?: SessionAttachmentRepository;
   sessionRepo?: SessionRepository;
@@ -29,6 +31,7 @@ export class ArchiveService {
   private readonly archivedDocRepo: ArchivedDocumentRepository;
   private readonly artifactRepo: ArtifactRepository;
   private readonly folderRepo: FolderRepository;
+  private readonly projectRepo: ProjectRepository;
   private readonly packageRepo: ContextPackageRepository;
   private readonly attachmentRepo: SessionAttachmentRepository;
   private readonly sessionRepo: SessionRepository;
@@ -39,6 +42,7 @@ export class ArchiveService {
       options.archivedDocRepo ?? new ArchivedDocumentRepository();
     this.artifactRepo = options.artifactRepo ?? new ArtifactRepository();
     this.folderRepo = options.folderRepo ?? new FolderRepository();
+    this.projectRepo = options.projectRepo ?? new ProjectRepository();
     this.packageRepo = options.packageRepo ?? new ContextPackageRepository();
     this.attachmentRepo =
       options.attachmentRepo ?? new SessionAttachmentRepository();
@@ -72,8 +76,8 @@ export class ArchiveService {
       throw new Error("Folder not found");
     }
 
-    if (folder.owner_id !== userId) {
-      throw new Error("Folder does not belong to user");
+    if (!(await this.canUseFolder(folder, userId))) {
+      throw new Error("Folder does not belong to user or project");
     }
 
     const session = await this.sessionRepo.findById(artifact.session_id);
@@ -136,6 +140,57 @@ export class ArchiveService {
 
   async listDocuments(folderId: string) {
     return this.archivedDocRepo.findByFolder(folderId);
+  }
+
+  async moveArchivedDocument(
+    documentId: string,
+    targetFolderId: string,
+    userId: string,
+  ) {
+    const doc = await this.archivedDocRepo.findById(documentId);
+    if (!doc) {
+      throw new Error("Archived document not found");
+    }
+    if (doc.created_by !== userId) {
+      throw new Error("Archived document does not belong to user");
+    }
+
+    const folder = await this.folderRepo.findById(targetFolderId);
+    if (!folder) {
+      throw new Error("Folder not found");
+    }
+    if (!(await this.canUseFolder(folder, userId))) {
+      throw new Error("Target folder does not belong to user or project");
+    }
+
+    const updated = await this.archivedDocRepo.updateFolder(
+      documentId,
+      targetFolderId,
+    );
+    if (!updated) {
+      throw new Error("Failed to move document");
+    }
+
+    return updated;
+  }
+
+  private async canUseFolder(
+    folder: Awaited<ReturnType<FolderRepository["findById"]>>,
+    userId: string,
+  ): Promise<boolean> {
+    if (!folder) {
+      return false;
+    }
+
+    if (folder.owner_id === userId) {
+      return true;
+    }
+
+    if (!folder.project_id || folder.type !== "project") {
+      return false;
+    }
+
+    return this.projectRepo.isMember(folder.project_id, userId);
   }
 
   async attachToSession(sessionId: string, documentId: string) {

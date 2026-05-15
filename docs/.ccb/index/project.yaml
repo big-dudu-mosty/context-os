@@ -1,115 +1,123 @@
 # 项目事实索引
 
 ## 项目基本信息
-name: 企业共享上下文协作系统
+name: AI Context Workbench
 slug: inter-agent
-description: 终端优先的团队上下文共享系统，通过 YAML 上下文包实现团队协作
+description: 面向个人和团队的 AI Context Workbench，支持多模型对话、Artifact 草稿生成、用户确认归档、结构化提取、简报和协作草稿。
 confidence: high
-source: auto-scan + docs/context-sharing-architecture.md
+source: docs/project-logic-and-architecture.md
 
 ## 项目阶段
-phase: mvp_design
-status: 架构设计阶段
+phase: product_logic_aligned
+status: 新版产品逻辑与架构已梳理，待进入代码实现
 confidence: high
-source: docs/context-sharing-architecture.md
+source: docs/project-logic-and-architecture.md
 
-## 技术栈
+## 前端基准
+frontend_baseline:
+  prototype: docs/prototypes/ai_context_collab_prototype_attach_label_fixed.html
+  style: 以 HTML 原型为准，保留顶部栏、三栏 Workbench、左侧 Sidebar、中间 Session 区、右侧动态详情面板。
+  key_layout:
+    - 顶部栏: 产品入口 / Inbox / Dream
+    - 左侧 Sidebar: Recent Sessions / Company Context / Project Context / GitHub Sync
+    - 中间 Session 区: AI 对话 / Agent 选择 / Model 选择 / Artifact 生成
+    - 右侧动态详情面板: Context Detail / Artifact Editor / Handoff Panel / GitHub File Detail
+confidence: high
+source: docs/project-logic-and-architecture.md + docs/prototypes/ai_context_collab_prototype_attach_label_fixed.html
+
+## 当前技术栈
 tech_stack:
-  - 待确定（无代码文件）
-confidence: low
-source: auto-scan
+  - Backend: TypeScript + Express
+  - Database: PostgreSQL 15 + pgvector
+  - Migrations: node-pg-migrate
+  - LLM client: OpenAI-compatible Chat Completions API
+  - Scheduler: node-cron
+  - Runtime: Docker Compose + Node.js
+confidence: high
+source: backend/package.json + docker-compose.yml
+
+## 当前已实现后端链路
+implemented_backend_flow:
+  - User / Agent / Project / Session 基础模型
+  - Session transcript_path 触发 Dream
+  - Dream 生成 ContextPackage YAML
+  - ExtractionService 提取 Decisions / Tasks / Risks / Open Questions / Observations
+  - BriefingService 生成简报
+  - HandoffService 创建和处理交接记录
+confidence: high
+source: backend/src/services/*
+
+## 新版目标主链路
+target_product_flow:
+  - 用户进入 AI Context Workbench
+  - 左侧选择或新建 Session
+  - 中间选择 Agent 和 Model 进行 AI 对话
+  - AI 生成 Artifact 草稿
+  - 用户查看、编辑、确认保存
+  - 保存为 Company / Project Context
+  - 后端结构化提取
+  - 生成 Decisions / Tasks / Risks / Questions / Observations
+  - 后续用于 Briefing、Handoff、任务说明和邮件草稿
+confidence: high
+source: docs/project-logic-and-architecture.md
+
+## 核心产品边界
+product_boundaries:
+  - 聊天记录是过程数据，不自动进入资料库
+  - Artifact 是 AI 生成的草稿，不等于正式资料
+  - 用户确认保存后的 Context 才是正式归档资料
+  - 任务和邮件当前只生成内容草稿，不直接发送
+  - Dream Review 生成建议，不应自动污染 Company / Project Context
+confidence: high
+source: docs/project-logic-and-architecture.md
 
 ## 关键目录
 key_directories:
-  - docs/: 架构文档和设计方案
-  - docs/.ccb/: CCB 协作框架目录
+  - docs/project-logic-and-architecture.md: 当前项目逻辑与架构总览
+  - docs/diagrams/: 当前架构图与流程图
+  - docs/prototypes/: 前端 HTML 原型基准
+  - docs/legacy/2026-05-14-old-p0/: 旧 P0 文档归档，不作为后续实现依据
+  - backend/src/: 当前后端实现
 confidence: high
-source: auto-scan
+source: repo scan
 
-## 核心概念
-core_concepts:
-  - ContextPackage: 用户提交的 YAML 上下文包
-  - ProjectContext: 项目当前状态的压缩快照（可重建）
-  - ContextIndex: 从 ContextPackage 提取的索引数据
-  - Digest: 每日/每周项目简报
-  - Feedback: 反馈纠偏提案（需审批）
-  - Decision: 决策记录（带状态机）
+## 后续待实现模块
+pending_modules:
+  - folders
+  - messages
+  - artifacts
+  - archived_documents
+  - session_attachments
+  - ChatService
+  - ArtifactService
+  - ArchiveService
+  - DraftService
 confidence: high
-source: docs/context-sharing-architecture.md
+source: docs/project-logic-and-architecture.md
 
-## 核心业务闭环
-workflow:
-  - 个人 AI 生成 YAML 上下文包
-  - CLI 校验并提交
-  - 后端解析、索引、更新 ProjectContext
-  - 团队通过 CLI 查询
-  - 系统生成简报
-  - 管理者提交反馈提案
-  - 审批后更新项目上下文
+## 当前权威文档
+authoritative_docs:
+  - docs/project-logic-and-architecture.md
+  - docs/diagrams/overall-architecture.md
+  - docs/diagrams/frontend-page-structure.md
+  - docs/diagrams/frontend-workbench.md
+  - docs/diagrams/right-panel-modes.md
+  - docs/diagrams/product-main-flow.md
+  - docs/diagrams/content-state-flow.md
+  - docs/diagrams/backend-minimal-loop.md
+  - docs/diagrams/frontend-page-responsibilities.md
+  - docs/prototypes/ai_context_collab_prototype_attach_label_fixed.html
 confidence: high
-source: docs/context-sharing-architecture.md
+source: docs/project-logic-and-architecture.md
 
-## 工程约束
-engineering_constraints:
-  - ContextPackage/Event 是事实源
-  - ContextIndex/Decision/Task/Risk 是提取层（可重算）
-  - ProjectContext 是可重建的物化视图
-  - Feedback 先生成提案，不直接覆盖
-  - Decision 必须有状态机和历史
-  - 检索使用混合策略（全文+向量+结构化）
-  - 所有流程必须带版本号
-  - 所有状态必须可从原始数据重建
+## 旧文档处理
+legacy_docs:
+  location: docs/legacy/2026-05-14-old-p0/
+  note: 旧 terminal-first / YAML submit / P0 REST API 文档已从 active 文档位置移出，仅作历史参考。
 confidence: high
-source: docs/context-sharing-architecture.md
-
-## MVP 范围
-mvp_scope:
-  必须做:
-    - 项目创建
-    - YAML 上下文包提交
-    - YAML schema 校验
-    - 结构化入库
-    - 全文检索
-    - 向量检索
-    - 项目问答
-    - 每日简报
-    - 反馈纠偏
-  暂时不做:
-    - 复杂 Web 前端
-    - 自动监听所有 AI 对话
-    - 飞书/Slack 全量集成
-    - 复杂企业权限审批
-    - 多人共同编辑文档
-    - Excel 浏览器
-    - 完整工作流引擎
-confidence: high
-source: docs/context-sharing-architecture.md
-
-## 已识别问题
-identified_issues:
-  - YAML 格式实际可行性存疑
-  - ProjectContext 更新逻辑不明确
-  - 权限模型过于简化
-  - 向量检索应用场景不清晰
-  - 反馈纠偏机制可能导致混乱
-  - 缺少数据一致性保证
-  - LLM 调用成本和延迟未考虑
-  - CLI 认证和会话管理缺失
-confidence: high
-source: 用户反馈 + 架构审查
-
-## 待优化方向
-optimization_directions:
-  - 明确 ProjectContext 更新算法和冲突解决
-  - 补充完整权限模型
-  - 设计 YAML 生成和验证工具链
-  - 考虑 LLM 调用成本优化
-  - 补充 CLI 认证和会话管理
-  - 设计数据修复和重建机制
-confidence: high
-source: 用户反馈 + 架构审查
+source: docs/legacy/2026-05-14-old-p0/
 
 ## 元信息
-generated_at: 2026-05-08
-generated_by: claude
-scan_version: v1
+updated_at: 2026-05-14
+updated_by: codex
+scan_version: v2

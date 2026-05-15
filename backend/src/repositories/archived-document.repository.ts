@@ -53,4 +53,17 @@ export class ArchivedDocumentRepository {
 
     return result;
   }
+
+  async updateFolder(
+    id: string,
+    folderId: string,
+  ): Promise<ArchivedDocument | null> {
+    return queryOne<ArchivedDocument>(
+      `UPDATE archived_documents
+       SET folder_id = $2
+       WHERE id = $1
+       RETURNING *`,
+      [id, folderId],
+    );
+  }
 }

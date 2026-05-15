@@ -36,6 +36,22 @@ Health check:
 curl http://localhost:3000/health
 ```
 
+Browser tester for non-coding users:
+
+```text
+http://localhost:3000
+```
+
+## Demo
+
+Run the one-call demo flow. This creates a user, project, agent, session, transcript file, runs Dream, and returns extracted structured data:
+
+```bash
+curl -X POST http://localhost:3000/api/demo/run \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Demo User","project_name":"Demo Project","transcript":"Decision: Use PostgreSQL plus pgvector. Task: Implement reducer. Risk: YAML may be malformed. Open question: Should reducer be async?"}'
+```
+
 ## Users
 
 Create user:

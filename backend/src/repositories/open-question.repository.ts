@@ -21,6 +21,19 @@ export class OpenQuestionRepository {
     );
   }
 
+  async findRecentByOwner(
+    ownerId: string,
+    limit = 20,
+  ): Promise<OpenQuestion[]> {
+    return query<OpenQuestion>(
+      `SELECT * FROM open_questions
+       WHERE owner_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [ownerId, limit],
+    );
+  }
+
   async create(input: CreateOpenQuestionInput): Promise<OpenQuestion> {
     const result = await queryOne<OpenQuestion>(
       `INSERT INTO open_questions (

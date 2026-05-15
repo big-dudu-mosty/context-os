@@ -5,6 +5,7 @@ import { ArtifactController } from "../controllers/artifact.controller";
 import { BriefingController } from "../controllers/briefing.controller";
 import { ChatController } from "../controllers/chat.controller";
 import { DemoController } from "../controllers/demo.controller";
+import { DreamReviewController } from "../controllers/dream-review.controller";
 import { DreamController } from "../controllers/dream.controller";
 import { FolderController } from "../controllers/folder.controller";
 import { HandoffController } from "../controllers/handoff.controller";
@@ -21,6 +22,7 @@ const agentController = new AgentController();
 const sessionController = new SessionController();
 const projectController = new ProjectController();
 const dreamController = new DreamController();
+const dreamReviewController = new DreamReviewController();
 const briefingController = new BriefingController();
 const handoffController = new HandoffController();
 const queryController = new QueryController();
@@ -48,6 +50,12 @@ router.post("/users", (req, res) => {
 router.get("/users/:id", (req, res) => {
   void userController.getById(req, res);
 });
+router.get("/users/:userId/sessions", (req, res) => {
+  void sessionController.listByOwner(req, res);
+});
+router.get("/users/:userId/projects", (req, res) => {
+  void projectController.listForUser(req, res);
+});
 
 router.post("/agents", (req, res) => {
   void agentController.create(req, res);
@@ -61,6 +69,9 @@ router.post("/sessions", (req, res) => {
 });
 router.get("/sessions/:id", (req, res) => {
   void sessionController.getById(req, res);
+});
+router.put("/sessions/:id/project", (req, res) => {
+  void sessionController.setProject(req, res);
 });
 router.put("/sessions/:id/end", (req, res) => {
   void sessionController.end(req, res);
@@ -87,6 +98,15 @@ router.post("/projects", (req, res) => {
 });
 router.get("/projects/:id", (req, res) => {
   void projectController.getById(req, res);
+});
+router.get("/projects/:projectId/members", (req, res) => {
+  void projectController.listMemberUsers(req, res);
+});
+router.post("/projects/:projectId/members", (req, res) => {
+  void projectController.addMemberUser(req, res);
+});
+router.get("/projects/:projectId/folders", (req, res) => {
+  void folderController.getByProject(req, res);
 });
 
 router.post("/folders", (req, res) => {
@@ -121,9 +141,27 @@ router.post("/archive", (req, res) => {
 router.get("/documents/:id", (req, res) => {
   void archiveController.getDocument(req, res);
 });
+router.put("/documents/:id/folder", (req, res) => {
+  void archiveController.moveDocument(req, res);
+});
 
 router.post("/dream/:agentId", (req, res) => {
   void dreamController.trigger(req, res);
+});
+router.get("/dream-review/:userId", (req, res) => {
+  void dreamReviewController.list(req, res);
+});
+router.post("/dream-review/:userId/approve-all", (req, res) => {
+  void dreamReviewController.approveAll(req, res);
+});
+router.put("/dream-review/:id/approve", (req, res) => {
+  void dreamReviewController.approve(req, res);
+});
+router.put("/dream-review/:id/reject", (req, res) => {
+  void dreamReviewController.reject(req, res);
+});
+router.put("/dream-review/:id/edit", (req, res) => {
+  void dreamReviewController.edit(req, res);
 });
 
 router.post("/briefing", (req, res) => {
@@ -136,8 +174,17 @@ router.get("/briefing/:userId", (req, res) => {
 router.post("/handoff", (req, res) => {
   void handoffController.create(req, res);
 });
+router.get("/handoff/inbox/:userId", (req, res) => {
+  void handoffController.getInbox(req, res);
+});
+router.get("/handoff/sent/:userId", (req, res) => {
+  void handoffController.getSent(req, res);
+});
 router.get("/handoff/pending/:userId", (req, res) => {
   void handoffController.getPending(req, res);
+});
+router.post("/handoff/:id/start-session", (req, res) => {
+  void handoffController.startSession(req, res);
 });
 router.put("/handoff/:id/accept", (req, res) => {
   void handoffController.accept(req, res);

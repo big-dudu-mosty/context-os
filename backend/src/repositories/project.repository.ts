@@ -91,6 +91,32 @@ export class ProjectRepository {
     );
   }
 
+  async listMemberUsers(
+    projectId: string,
+  ): Promise<
+    { user_id: string; name: string; email: string; role: string }[]
+  > {
+    return query(
+      `SELECT u.id AS user_id, u.name, u.email, pm.role
+       FROM project_members pm
+       INNER JOIN users u ON u.id = pm.user_id
+       WHERE pm.project_id = $1
+       ORDER BY pm.created_at ASC`,
+      [projectId],
+    );
+  }
+
+  async listForUser(userId: string): Promise<Project[]> {
+    return query<Project>(
+      `SELECT p.*
+       FROM projects p
+       INNER JOIN project_members pm ON pm.project_id = p.id
+       WHERE pm.user_id = $1
+       ORDER BY p.name ASC`,
+      [userId],
+    );
+  }
+
   async isMember(projectId: string, userId: string): Promise<boolean> {
     const result = await queryOne<{ exists: boolean }>(
       `SELECT EXISTS(

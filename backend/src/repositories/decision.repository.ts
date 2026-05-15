@@ -18,6 +18,16 @@ export class DecisionRepository {
     );
   }
 
+  async findRecentByOwner(ownerId: string, limit = 20): Promise<Decision[]> {
+    return query<Decision>(
+      `SELECT * FROM decisions
+       WHERE owner_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [ownerId, limit],
+    );
+  }
+
   async findConflict(
     projectId: string,
     decisionKey: string,

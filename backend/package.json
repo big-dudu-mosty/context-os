@@ -29,6 +29,7 @@
     "test:artifact:live": "DATABASE_URL=postgresql://context_os:context_os_dev@localhost:5432/context_os_dev tsx src/test-artifact.ts",
     "test:archive": "DATABASE_URL=postgresql://context_os:context_os_dev@localhost:5432/context_os_dev ARCHIVE_TEST_USE_MOCK=1 tsx src/test-archive.ts",
     "test:archive:live": "DATABASE_URL=postgresql://context_os:context_os_dev@localhost:5432/context_os_dev tsx src/test-archive.ts",
+    "test:workbench": "DATABASE_URL=postgresql://context_os:context_os_dev@localhost:5432/context_os_dev tsx src/test-workbench-actions.ts",
     "test:scheduler": "DREAM_TEST_USE_MOCK=1 tsx src/test-scheduler.ts",
     "test": "jest",
     "lint": "eslint src --ext .ts",

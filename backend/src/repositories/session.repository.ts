@@ -1,19 +1,29 @@
-import { query, queryOne } from '../db';
+import { query, queryOne } from "../db";
 import {
   CreateSessionInput,
   Session,
   UpdateSessionInput,
-} from '../models/session';
+} from "../models/session";
 
 export class SessionRepository {
   async findById(id: string): Promise<Session | null> {
-    return queryOne<Session>('SELECT * FROM sessions WHERE id = $1', [id]);
+    return queryOne<Session>("SELECT * FROM sessions WHERE id = $1", [id]);
   }
 
   async findByAgent(agentId: string, limit = 10): Promise<Session[]> {
     return query<Session>(
-      'SELECT * FROM sessions WHERE agent_id = $1 ORDER BY started_at DESC LIMIT $2',
-      [agentId, limit]
+      "SELECT * FROM sessions WHERE agent_id = $1 ORDER BY started_at DESC LIMIT $2",
+      [agentId, limit],
+    );
+  }
+
+  async findByOwner(ownerId: string, limit = 20): Promise<Session[]> {
+    return query<Session>(
+      `SELECT * FROM sessions
+       WHERE owner_id = $1
+       ORDER BY started_at DESC
+       LIMIT $2`,
+      [ownerId, limit],
     );
   }
 
@@ -24,7 +34,7 @@ export class SessionRepository {
        AND started_at >= $1
        AND started_at < $1 + INTERVAL '1 day'
        ORDER BY agent_id, started_at`,
-      [date]
+      [date],
     );
   }
 
@@ -33,11 +43,11 @@ export class SessionRepository {
       `INSERT INTO sessions (agent_id, owner_id, project_id)
        VALUES ($1, $2, $3)
        RETURNING *`,
-      [input.agent_id, input.owner_id, input.project_id ?? null]
+      [input.agent_id, input.owner_id, input.project_id ?? null],
     );
 
     if (!result) {
-      throw new Error('Failed to create session');
+      throw new Error("Failed to create session");
     }
 
     return result;
@@ -78,6 +88,11 @@ export class SessionRepository {
       values.push(input.dreamed_at);
     }
 
+    if (input.project_id !== undefined) {
+      fields.push(`project_id = $${paramIndex++}`);
+      values.push(input.project_id);
+    }
+
     if (fields.length === 0) {
       return this.findById(id);
     }
@@ -85,10 +100,10 @@ export class SessionRepository {
     values.push(id);
 
     return queryOne<Session>(
-      `UPDATE sessions SET ${fields.join(', ')}
+      `UPDATE sessions SET ${fields.join(", ")}
        WHERE id = $${paramIndex}
        RETURNING *`,
-      values
+      values,
     );
   }
 }

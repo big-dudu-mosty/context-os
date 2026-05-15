@@ -29,6 +29,12 @@
     sans-serif;
 }
 
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -43,6 +49,8 @@ body {
     #f6f4ef 34%,
     #efebe3 100%
   );
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 button,

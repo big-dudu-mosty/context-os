@@ -82,6 +82,23 @@ export class ArchiveController {
     }
   }
 
+  async moveDocument(req: Request, res: Response): Promise<void> {
+    try {
+      const id = requireString(req.params.id, "id");
+      const userId = requireString(req.body.user_id, "user_id");
+      const folderId = requireString(req.body.folder_id, "folder_id");
+
+      const updated = await this.getArchiveService().moveArchivedDocument(
+        id,
+        folderId,
+        userId,
+      );
+      sendSuccess(res, updated);
+    } catch (error) {
+      sendControllerError(res, error);
+    }
+  }
+
   private getArchiveService(): ArchiveService {
     this.archiveService ??= new ArchiveService();
     return this.archiveService;

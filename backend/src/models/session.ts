@@ -26,4 +26,5 @@ export interface UpdateSessionInput {
   dream_status?: string;
   dream_attempts?: number;
   dreamed_at?: Date;
+  project_id?: string | null;
 }

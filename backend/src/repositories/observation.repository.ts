@@ -26,6 +26,16 @@ export class ObservationRepository {
     );
   }
 
+  async findRecentByOwner(ownerId: string, limit = 20): Promise<Observation[]> {
+    return query<Observation>(
+      `SELECT * FROM observations
+       WHERE owner_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [ownerId, limit],
+    );
+  }
+
   async create(input: CreateObservationInput): Promise<Observation> {
     const result = await queryOne<Observation>(
       `INSERT INTO observations (

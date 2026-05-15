@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Context OS Tester</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        background: #f5f7f8;
+        color: #172026;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+      }
+
+      header {
+        border-bottom: 1px solid #d8e0e5;
+        background: #ffffff;
+      }
+
+      .header-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.2;
+      }
+
+      .status {
+        font-size: 13px;
+        color: #4b5b65;
+      }
+
+      main {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 24px;
+        display: grid;
+        grid-template-columns: minmax(320px, 420px) 1fr;
+        gap: 20px;
+      }
+
+      section {
+        min-width: 0;
+      }
+
+      .panel {
+        background: #ffffff;
+        border: 1px solid #d8e0e5;
+        border-radius: 8px;
+        padding: 18px;
+      }
+
+      .panel + .panel {
+        margin-top: 16px;
+      }
+
+      h2 {
+        margin: 0 0 14px;
+        font-size: 16px;
+      }
+
+      label {
+        display: block;
+        margin: 14px 0 6px;
+        font-size: 13px;
+        font-weight: 650;
+        color: #26343c;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        border: 1px solid #c8d2d8;
+        border-radius: 6px;
+        padding: 10px 11px;
+        font: inherit;
+        color: inherit;
+        background: #ffffff;
+      }
+
+      textarea {
+        min-height: 250px;
+        resize: vertical;
+        line-height: 1.45;
+      }
+
+      button {
+        border: 0;
+        border-radius: 6px;
+        padding: 10px 14px;
+        font: inherit;
+        font-weight: 700;
+        color: #ffffff;
+        background: #1d6f5f;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: #364b59;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.58;
+      }
+
+      .actions {
+        margin-top: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .hint {
+        margin: 10px 0 0;
+        font-size: 13px;
+        color: #5d6c75;
+        line-height: 1.5;
+      }
+
+      .error {
+        border-color: #e2a8a8;
+        background: #fff6f6;
+        color: #8f1d1d;
+      }
+
+      .result-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .result-card {
+        border: 1px solid #d8e0e5;
+        border-radius: 8px;
+        padding: 14px;
+        background: #fbfcfc;
+        min-height: 120px;
+      }
+
+      .result-card h3 {
+        margin: 0 0 10px;
+        font-size: 14px;
+      }
+
+      .item {
+        border-top: 1px solid #e4eaee;
+        padding-top: 10px;
+        margin-top: 10px;
+      }
+
+      .item:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+        margin-top: 0;
+      }
+
+      .item-title {
+        margin: 0 0 5px;
+        font-weight: 700;
+      }
+
+      .meta {
+        margin: 0;
+        font-size: 12px;
+        color: #62727c;
+        line-height: 1.45;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .ids {
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+        color: #566873;
+      }
+
+      @media (max-width: 860px) {
+        main {
+          grid-template-columns: 1fr;
+          padding: 16px;
+        }
+
+        .header-inner {
+          padding: 16px;
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .result-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <h1>Context OS Tester</h1>
+        <div class="status" id="status">Ready</div>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <h2>测试输入</h2>
+        <form id="demo-form">
+          <label for="name">你的名字</label>
+          <input id="name" name="name" value="Demo User" autocomplete="name" />
+
+          <label for="project_name">项目名称</label>
+          <input
+            id="project_name"
+            name="project_name"
+            value="Context OS Demo Project"
+          />
+
+          <label for="transcript">工作记录</label>
+          <textarea id="transcript" name="transcript">Decision: Use PostgreSQL plus pgvector for Context OS storage.
+Task: Implement ProjectContext reducer next. Status: todo. Priority: high.
+Risk: LLM YAML may be malformed. Severity: medium. Mitigation: add schema validation.
+Open question: Should reducer run synchronously or asynchronously?
+Observation: Project-bound sessions allow structured extraction.</textarea>
+
+          <div class="actions">
+            <button id="run-button" type="submit">Run Dream</button>
+            <button id="briefing-button" class="secondary" type="button" disabled>
+              Generate Briefing
+            </button>
+          </div>
+          <p class="hint">
+            测试会自动创建用户、项目、Agent、Session，并把工作记录保存为
+            transcript 后触发 Dream。
+          </p>
+        </form>
+      </section>
+
+      <section>
+        <div class="panel" id="summary-panel">
+          <h2>运行结果</h2>
+          <div class="ids" id="ids">还没有运行测试。</div>
+        </div>
+
+        <div class="panel">
+          <h2>结构化提取</h2>
+          <div class="result-grid">
+            <div class="result-card">
+              <h3>Decisions</h3>
+              <div id="decisions"></div>
+            </div>
+            <div class="result-card">
+              <h3>Tasks</h3>
+              <div id="tasks"></div>
+            </div>
+            <div class="result-card">
+              <h3>Risks</h3>
+              <div id="risks"></div>
+            </div>
+            <div class="result-card">
+              <h3>Open Questions</h3>
+              <div id="questions"></div>
+            </div>
+            <div class="result-card">
+              <h3>Observations</h3>
+              <div id="observations"></div>
+            </div>
+            <div class="result-card">
+              <h3>Dream Summary</h3>
+              <div id="package"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Briefing</h2>
+          <pre id="briefing">先运行 Dream，再生成 Briefing。</pre>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const state = {
+        ownerId: null,
+      };
+
+      const form = document.querySelector("#demo-form");
+      const runButton = document.querySelector("#run-button");
+      const briefingButton = document.querySelector("#briefing-button");
+      const statusEl = document.querySelector("#status");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        clearError();
+        setLoading(true, "Running Dream...");
+
+        try {
+          const payload = {
+            name: document.querySelector("#name").value,
+            project_name: document.querySelector("#project_name").value,
+            transcript: document.querySelector("#transcript").value,
+          };
+
+          const data = await postJson("/api/demo/run", payload);
+          state.ownerId = data.user.id;
+          renderDemoResult(data);
+          briefingButton.disabled = false;
+          setStatus("Dream completed");
+        } catch (error) {
+          showError(error);
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      briefingButton.addEventListener("click", async () => {
+        if (!state.ownerId) return;
+
+        clearError();
+        briefingButton.disabled = true;
+        setStatus("Generating Briefing...");
+
+        try {
+          const today = new Date().toISOString().slice(0, 10);
+          const data = await postJson("/api/briefing", {
+            owner_id: state.ownerId,
+            date: today,
+          });
+          document.querySelector("#briefing").textContent = data.content;
+          setStatus(data.generated ? "Briefing generated" : "Briefing loaded");
+        } catch (error) {
+          showError(error);
+        } finally {
+          briefingButton.disabled = false;
+        }
+      });
+
+      async function postJson(url, payload) {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+        const body = await response.json();
+
+        if (!response.ok || body.error) {
+          throw new Error(body.error || `Request failed: ${response.status}`);
+        }
+
+        return body.data;
+      }
+
+      function renderDemoResult(data) {
+        document.querySelector("#ids").innerHTML = [
+          ["User", data.user.id],
+          ["Project", data.project.id],
+          ["Agent", data.agent.id],
+          ["Session", data.session.id],
+          ["Package", data.dream.packageId || "none"],
+        ]
+          .map(([label, value]) => `<div><strong>${label}:</strong> ${value}</div>`)
+          .join("");
+
+        renderList("#decisions", data.decisions, (item) => ({
+          title: item.title,
+          meta: [item.status, item.confidence && `confidence ${item.confidence}`]
+            .filter(Boolean)
+            .join(" / "),
+          body: item.detail,
+        }));
+        renderList("#tasks", data.tasks, (item) => ({
+          title: item.title,
+          meta: [item.status, item.priority].filter(Boolean).join(" / "),
+          body: item.description,
+        }));
+        renderList("#risks", data.risks, (item) => ({
+          title: item.title,
+          meta: [item.status, item.severity].filter(Boolean).join(" / "),
+          body: item.mitigation,
+        }));
+        renderList("#questions", data.questions, (item) => ({
+          title: item.question,
+          meta: [item.status, item.priority].filter(Boolean).join(" / "),
+          body: item.context,
+        }));
+        renderList("#observations", data.observations, (item) => ({
+          title: item.content,
+          meta: [item.type, item.relevance, item.confidence && `confidence ${item.confidence}`]
+            .filter(Boolean)
+            .join(" / "),
+          body: item.tags?.length ? `tags: ${item.tags.join(", ")}` : "",
+        }));
+
+        const pkg = data.package;
+        document.querySelector("#package").innerHTML = pkg
+          ? `<p class="item-title">${escapeHtml(pkg.title)}</p><p class="meta">${escapeHtml(pkg.summary || "No summary")}</p>`
+          : `<p class="meta">No package created.</p>`;
+      }
+
+      function renderList(selector, items, mapItem) {
+        const container = document.querySelector(selector);
+        if (!items || items.length === 0) {
+          container.innerHTML = `<p class="meta">No items.</p>`;
+          return;
+        }
+
+        container.innerHTML = items
+          .map((item) => {
+            const mapped = mapItem(item);
+            return `<div class="item">
+              <p class="item-title">${escapeHtml(mapped.title || "Untitled")}</p>
+              ${mapped.meta ? `<p class="meta">${escapeHtml(mapped.meta)}</p>` : ""}
+              ${mapped.body ? `<p class="meta">${escapeHtml(mapped.body)}</p>` : ""}
+            </div>`;
+          })
+          .join("");
+      }
+
+      function setLoading(isLoading, message) {
+        runButton.disabled = isLoading;
+        if (message) setStatus(message);
+      }
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function showError(error) {
+        setStatus("Error");
+        document.querySelector("#summary-panel").classList.add("error");
+        document.querySelector("#ids").textContent =
+          error instanceof Error ? error.message : String(error);
+      }
+
+      function clearError() {
+        document.querySelector("#summary-panel").classList.remove("error");
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+    </script>
+  </body>
+</html>

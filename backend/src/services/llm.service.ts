@@ -91,6 +91,10 @@ export class LLMService implements LLMClient {
   private mockChat(messages: LLMChatMessage[]): string {
     const lastMessage = messages[messages.length - 1];
     const content = lastMessage?.content ?? "";
+    const contextMessage = messages.find(
+      (message) =>
+        message.role === "system" && message.content.includes("# 已引用上下文"),
+    );
 
     if (isArtifactPrompt(content)) {
       return [
@@ -125,6 +129,23 @@ export class LLMService implements LLMClient {
 
     if (content.includes("文档") || content.includes("整理")) {
       return "好的，我会帮你整理成结构化文档。你可以继续描述需求，稍后点击「生成文档」测试 Artifact 草稿流程。";
+    }
+
+    if (contextMessage) {
+      const titles = [
+        ...contextMessage.content.matchAll(/## 引用上下文 \d+: (.+)/g),
+      ].map((match) => match[1]);
+
+      return [
+        `我会基于已引用的上下文来回答。当前引用的是：${titles.join("、") || "已选资料"}。`,
+        "",
+        "结合该上下文，可以先这样判断：",
+        "- 优先围绕引用资料中的项目目标、已有结论、风险和任务继续分析。",
+        "- 如果你问“这个方案和市面方案有什么不同”，需要先从资料里抽取项目定位、目标用户、核心能力和限制条件，再和外部竞品做对比。",
+        "- 当前 Mock 模式不会真实检索外部市场信息，但已经能验证“引用上下文会进入模型输入”这条链路。",
+        "",
+        `你的问题是：${trimForMock(content, 120)}`,
+      ].join("\n");
     }
 
     return `收到你的消息："${trimForMock(content, 50)}"

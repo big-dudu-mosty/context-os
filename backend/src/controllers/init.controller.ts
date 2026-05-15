@@ -13,6 +13,7 @@ import {
   sendControllerError,
   sendSuccess,
 } from "./http";
+import { DEMO_LOGIN_NAMES, demoEmailFromLoginName, toLoginSlug } from "../utils/demo-user";
 
 export class InitController {
   private readonly userRepo = new UserRepository();
@@ -24,7 +25,9 @@ export class InitController {
   async initialize(req: Request, res: Response): Promise<void> {
     try {
       const userName = requireString(req.body.user_name, "user_name");
-      const slug = toSlug(userName);
+      await this.ensureDemoUsers();
+
+      const slug = toLoginSlug(userName);
       const email = `${slug}@local`;
 
       const user =
@@ -115,6 +118,20 @@ export class InitController {
     });
   }
 
+  private async ensureDemoUsers(): Promise<void> {
+    for (const loginName of DEMO_LOGIN_NAMES) {
+      const email = demoEmailFromLoginName(loginName);
+      const existing = await this.userRepo.findByEmail(email);
+      if (!existing) {
+        await this.userRepo.create({
+          name: loginName.slice(0, 1).toUpperCase() + loginName.slice(1),
+          email,
+          role: "member",
+        });
+      }
+    }
+  }
+
   private async findOrCreateProject(
     slug: string,
     name: string,
@@ -156,14 +173,4 @@ export class InitController {
       project_id: projectId,
     });
   }
-}
-
-function toSlug(value: string): string {
-  const slug = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  return slug || "local-user";
 }
